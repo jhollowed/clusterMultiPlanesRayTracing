@@ -428,20 +428,6 @@ def cart2pol3d(x, y, z):
     phi_pol = np.arctan2(y, x)
     return r_pol, theta_pol, phi_pol
 
-def make_r_coor(bs, nc):
-    ds = bs/nc
-    x1 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-    x2 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-    x2,x1 = np.meshgrid(x1,x2)
-    return x1,x2
-
-def make_c_coor(bs, nc):
-    ds = bs/nc
-    x1 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-    x2 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-    x1,x2 = np.meshgrid(x1,x2)
-    return x1,x2
-
 def sigma_crit(z1, z2):
     # sigma_crit = cf.vc*cf.vc/(4.0*np.pi*cf.G)*(1+zl)*cf.Dc(zs)/(cf.Dc(zl)*cf.Dc2(zl,zs))
     res = vc*vc/(4.0*np.pi*G)*Da(z2)/(Da(z1)*Da2(z1,z2))
@@ -470,4 +456,5 @@ def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
     res = 1.0/(al11*al22-(al11+al22)-al12*al21+1.0)
 
     return res
+
 
