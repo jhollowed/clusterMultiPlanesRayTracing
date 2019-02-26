@@ -3,20 +3,22 @@ from astropy.table import Table
 
 import cfuncs as cf
 import inps as inp
-
+import h5py
+import pdb
 
 def loadin_lens_data_zs0_hdf5(haloID):
     
     data = h5py.File(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5')
+    lens_shells = np.array(list(data.keys()))
+    lens_zs = np.array([data[shell]['zl'].value for shell in lens_shells])
+    idx = np.argsort(lens_zs)
+    zl_array_zs0 = lens_zs[idx]
 
-    idx = np.argsort(data['zl'])
-    zl_array_zs0 = data['zl'][idx]
-
-    alpha1_array_zs0 = data['alpha1'][idx]
-    alpha2_array_zs0 = data['alpha2'][idx]
-    kappa0_array_zs0 = data['kappa0'][idx]
-    shear1_array_zs0 = data['shear1'][idx]
-    shear2_array_zs0 = data['shear2'][idx]
+    kappa0_array_zs0 = np.array([data[shell]['kappa0'].value for shell in lens_shells[idx]])
+    alpha1_array_zs0 = np.array([data[shell]['alpha1'].value for shell in lens_shells[idx]])
+    alpha2_array_zs0 = np.array([data[shell]['alpha2'].value for shell in lens_shells[idx]])
+    shear1_array_zs0 = np.array([data[shell]['shear1'].value for shell in lens_shells[idx]])
+    shear2_array_zs0 = np.array([data[shell]['shear2'].value for shell in lens_shells[idx]])
 
     return alpha1_array_zs0, alpha2_array_zs0, kappa0_array_zs0, shear1_array_zs0, shear2_array_zs0, zl_array_zs0
 
@@ -200,15 +202,13 @@ def raytrace_grid_maps_for_zs(haloID, ZS):
     data['af2'] = af2.astype(np.float32)
     data['sf1'] = sf1.astype(np.float32)
     data['sf2'] = sf2.astype(np.float32)
-
+    
     data.write(inp.outputs_path + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5',
-                       path="/raytraced_maps", append=True, overwrite=True)#, compression=True)
-
-
+               path="/raytraced_maps", append=True, overwrite=True)#, compression=True)
     return data
 
 
 if __name__ == '__main__':
     halo_id = inp.halo_info[:-1]
-    zs_t = 1.5
+    zs_t = 0.75
     raytrace_grid_maps_for_zs(halo_id, zs_t)

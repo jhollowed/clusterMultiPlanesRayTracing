@@ -8,6 +8,7 @@ import pdb
 import matplotlib.pyplot as plt
 import subprocess
 import os
+import pdb
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -146,7 +147,7 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     else:
         BoundaryCondition = "Periodic"
 
-    BoundaryCondition = "Isolated"
+    #BoundaryCondition = "Isolated"
 #     BoundaryCondition = "Periodic"
 
     if BoundaryCondition == "Periodic":

@@ -65,7 +65,7 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
                       -inp.bsz_arc/2.0,
                        inp.bsz_arc/2.0,])
 
-    scale_shear = 80.0
+    scale_shear = 4000
     ngals = 5000
     index = np.random.choice(np.linspace(0, len(x1)-1, len(x1)).astype('int'), ngals)
 
@@ -179,5 +179,5 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
 
 if __name__ == '__main__':
     halo_id = inp.halo_info[:-1]
-    zs_t = 1.5
+    zs_t = 0.75
     make_lensing_mocks(halo_id, zs_t, plot_shears=True)
