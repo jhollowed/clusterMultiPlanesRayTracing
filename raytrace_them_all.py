@@ -2,9 +2,10 @@ import numpy as np
 from astropy.table import Table
 
 import cfuncs as cf
-import inps as inp
+import inps
 import h5py
 import pdb
+import glob
 
 def loadin_lens_data_zs0_hdf5(haloID):
     
@@ -142,6 +143,8 @@ def rec_read_xj(alpha1_array,alpha2_array,zln,zs,n):
 
 
 def raytrace_grid_maps_for_zs(haloID, ZS):
+    
+    print('Doing ray-tracing for halo {} at zs={}'.format(haloID, ZS))
     #------------------------------------------------------
     # Load in lensing maps
     #
@@ -192,23 +195,29 @@ def raytrace_grid_maps_for_zs(haloID, ZS):
     print("af2 = ", np.max(af2))
     print("sf1 = ", np.max(sf1))
     print("sf2 = ", np.max(sf2))
+    
     #------------------------------------------------------
     # Save Outputs
     #
-    data = Table()
-
-    data['kf0'] = kf0.astype(np.float32)
-    data['af1'] = af1.astype(np.float32)
-    data['af2'] = af2.astype(np.float32)
-    data['sf1'] = sf1.astype(np.float32)
-    data['sf2'] = sf2.astype(np.float32)
     
-    data.write(inp.outputs_path + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5',
-               path="/raytraced_maps", append=True, overwrite=True)#, compression=True)
-    return data
+    data = h5py.File(inp.outputs_path + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5', 'w')
+    ZS = np.atleast_1d(ZS)
+
+    for i in range(len(ZS)):
+        source_plane = data.create_group('{}'.format(ZS[i]))
+        source_plane.create_dataset('kappa0', data=kappa0_array[i], dtype='float32')
+        source_plane.create_dataset('alpha1', data=alpha1_array[i], dtype='float32')
+        source_plane.create_dataset('alpha2', data=alpha2_array[i], dtype='float32')
+        source_plane.create_dataset('shear1', data=shear1_array[i], dtype='float32')
+        source_plane.create_dataset('shear2', data=shear2_array[i], dtype='float32')
 
 
 if __name__ == '__main__':
-    halo_id = inp.halo_info[:-1]
-    zs_t = 0.75
-    raytrace_grid_maps_for_zs(halo_id, zs_t)
+    
+    halo_ids_avail = [s.split('/')[-1]+'/' for s in glob.glob('./data/lenses/prtcls/halo*')]
+    
+    for halo_id in halo_ids_avail:
+        inp = inps.inputs(halo_id)
+        halo_id = inp.halo_info[:-1]
+        zs_t = np.linspace(1.0/201.0,1.0,500)[inp.halo_shell] + 0.7
+        raytrace_grid_maps_for_zs(halo_id, zs_t)

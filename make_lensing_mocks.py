@@ -29,8 +29,8 @@ def shear_vis_gmaps(x1, x2, shear1, shear2, kappa):
     ndiv = 8
     scale_shear = 80
 
-    for i in range(ndiv/2,nnx,ndiv):
-        for j in range(ndiv/2,nny,ndiv):
+    for i in range(int(ndiv/2),nnx,ndiv):
+        for j in range(int(ndiv/2),nny,ndiv):
             gt1 = g1[i, j]
             gt2 = g2[i, j]
 
@@ -126,6 +126,8 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
         sf2 = DATA['sf2']#.data
 
         del DATA
+    
+    shear_vis_gmaps(xx1, xx2, sf1, sf2, kf0)
 
     #------------------------------------------------------
     # Deflection Angles and lensed Positions
@@ -135,6 +137,7 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
     yf2 = xx2 - af2
     xr1_array, xr2_array = cf.call_mapping_triangles_arrays_omp(ys1_array,ys2_array,xx1,xx2,yf1,yf2)
     # xr1_array, xr2_array = ys1_array, ys2_array
+    
     #------------------------------------------------------
     # Update Lensing Signals of Lensed Positions
     #
@@ -164,13 +167,13 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
     data['sr1'] = sr1_array.astype('float32')
     data['sr2'] = sr2_array.astype('float32')
     data['mra'] = mra_array.astype('float32')
-
+    
+    pdb.set_trace()
     data.write(inp.outputs_path + haloID + '_' + str(zs) + '_lensing_mocks.hdf5',
                path="/lensing_mocks", append=True, overwrite=True)#, compression=True)
 
     if plot_shears:
         shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
-        #shear_vis_gmaps(xx1, xx2, sf1, sf2, kf0)
     else:
         pass
 

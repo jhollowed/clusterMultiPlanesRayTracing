@@ -3,12 +3,13 @@ from astropy.table import Table
 import h5py
 
 import cfuncs as cf
-import inps as inp
+import inps
 import pdb
 import matplotlib.pyplot as plt
 import subprocess
 import os
 import pdb
+import glob
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -36,7 +37,7 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     if not os.path.exists(write_dir):
             os.makedirs(write_dir)
     dtfe_file = '{}/{}_dtfe_input.bin'.format(write_dir, snapid)
-    
+
     # read in particle data
     print('reading redshift')
     zl_array = np.fromfile(file_name_base+str(snapid)+"/"+"redshift."+str(snapid)+".bin", dtype = "f")
@@ -48,13 +49,26 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     bsz_mpc = inp.bsz_arc*cf.Dc(zl_median)/cf.apr
     # dsx_mpc = bsz_mpc/ncc
     
-    if(skip_sdens == False):    
-        
+    noskip = False
+    if(skip_sdens == True):    
+        try:
+            # read in result
+
+            print('---------- reading density at {} ----------'.format(snapid))
+            sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
+        except FileNotFoundError: 
+            print('Cant skip density calculation for {}; doesnt exist'.format(snapid))
+            noskip = True
+
+    if(skip_sdens == False or noskip == True):
         print('---------- working on {} ----------'.format(snapid))
         print('reading x, y, z')
         xxl_array = np.fromfile(file_name_base+str(snapid)+"/"+"x."+str(snapid)+".bin", dtype = "f")
         yyl_array = np.fromfile(file_name_base+str(snapid)+"/"+"y."+str(snapid)+".bin", dtype = "f")
         zzl_array = np.fromfile(file_name_base+str(snapid)+"/"+"z."+str(snapid)+".bin", dtype = "f")
+        
+        if len(xxl_array) < 10:
+            return 1
         #xo3 = cf.Dc(zl_array)
         xo3 = np.linalg.norm(np.vstack([xxl_array, yyl_array, zzl_array]), axis=0)
         xc3 = (np.max(xo3)+np.min(xo3))*0.5
@@ -88,11 +102,12 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
         x2in = x2_array[idx]
         x3in = x3_array[idx]
         mpin = mp_array[idx]
-
+        
         npp = len(mpin)
         if npp < 20:
             return 1
         
+
         # ------ do density estiamtion via system call to SDTFE exe ------
  
         # x, y, z in column major
@@ -117,27 +132,10 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
         # read in result
         sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
     
-    else:
-        # read in result
-
-        print('---------- reading density at {} ----------'.format(snapid))
-        sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
 
     sdens_cmpch = sdens_cmpch.reshape(inp.nnn, inp.nnn)
     kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
-    
-    # -----------------------------------------------------------------
-
-    #print(snapid)
-    #sdens_cmpch2 = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
-    #plt.imshow(np.log10(sdens_cmpch))
-    #plt.plot(x1in, x2in, '.')
-    #plt.show()
-    #pdb.set_trace()
-    #return
-    #kappa2 = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
-    #pdb.set_trace()
-    
+     
     #---------------------------------------
     # Calculate deflection maps
     #
@@ -173,6 +171,8 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
 
 def create_grid_maps_for_zs0(haloID, skip_sdens=False):
     
+    print('\n ---------- creating grid maps for halo {} ---------- '.format(haloID))
+
     data = h5py.File(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5', 'w')
 
     nslices = len(inp.snapid_list)
@@ -210,5 +210,11 @@ def create_grid_maps_for_zs0(haloID, skip_sdens=False):
 
 
 if __name__ == '__main__':
-    halo_id = inp.halo_info[:-1]
-    create_grid_maps_for_zs0(halo_id, skip_sdens=True)
+    
+    halo_ids_avail = [s.split('/')[-1]+'/' for s in glob.glob('./data/lenses/prtcls/halo*')]
+    for halo_id in halo_ids_avail:
+        inp = inps.inputs(halo_id)
+        halo_id = inp.halo_info[:-1]
+        create_grid_maps_for_zs0(halo_id, skip_sdens=True)
+
+
