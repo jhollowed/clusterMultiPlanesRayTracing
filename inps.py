@@ -5,16 +5,17 @@
 # bsz = 0.404733 # degree
 # dsx = bsz/nnn
 
-nnn = 512
-bsz = 0.2 # degree
+nnn = 1024
+bsz = 2000/3600. # degree
 dsx = bsz/nnn
 bsz_arc = bsz*3600. #" # in the units of Einstein Radius
 dsx_arc = dsx*3600.
 zs0 = 10.0
-mpp = 1148276137.0888093*1.6*100. # solMass/h
+mpp = 1148276137.0888093*1.6 # solMass/h
 npad = 5
 
 import numpy as np
+import glob
 
 def make_r_coor(bs, nc):
     ds = bs/nc
@@ -68,11 +69,17 @@ nlpl = len(snapid_list)
 #
 
 # halo_info = "halo_244849942116_z0.302586317062_MFOF8.00235555127e+14/"
-halo_info = "halo_207057992014_z0.842707037926_MFOF4.2993538669e+14/"
+#halo_info = "halo_207057992014_z0.842707037926_MFOF4.2993538669e+14/"
+halo_info = "halo_4771392210198134784_0/"
 
 input_prtcls_dir = "./data/lenses/prtcls/" + halo_info
+halo_prop_file = '{}/properties.csv'.format(input_prtcls_dir)
+halo_props = np.genfromtxt(halo_prop_file, delimiter=',')
+halo_shell = int(halo_props[1])
+
 sdens_path = "./data/lenses/sdens/"
 gals_path = "./data/sources/points/"
+snapid_list = [s.split('Cutout')[-1] for s in glob.glob('{}/*Cutout*'.format(input_prtcls_dir))]
 #--------------------------------------------------------------------
 # C lib directories
 #
@@ -83,7 +90,7 @@ lib_path = "./lib/"
 # grids_maps outputs
 #
 
-outputs_path = "./outputs/"
+outputs_path = "/projects/DarkUniverse_esp/jphollowed/test4/"
 
 gmaps_path = outputs_path + "grids_maps/"
 alpha_path = gmaps_path + "alpha_maps/"

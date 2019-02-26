@@ -6,7 +6,7 @@ import inps as inp
 
 
 def loadin_lens_data_zs0_hdf5(haloID):
-    data = Table.read('./outputs/' + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5', path='/grid_maps')
+    data = Table.read(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5', path='/grid_maps')
 
     idx = np.argsort(data['zl'])
     zl_array_zs0 = data['zl'][idx]
@@ -84,7 +84,7 @@ def rec_read_xj(alpha1_array,alpha2_array,zln,zs,n):
             x11 = np.fromfile(inp.xj_path+str(n-2)+"_xj1.bin", dtype='double').reshape((nx1, nx2))
             x12 = np.fromfile(inp.xj_path+str(n-2)+"_xj2.bin", dtype='double').reshape((nx1, nx2))
         except:
-            print "No %s files, recalculate XJ..."%(inp.xj_path+str(n-2)+"_xj1.bin")
+            print("No {} files, recalculate XJ...".format(inp.xj_path+str(n-2)+"_xj1.bin"))
             x11 = xx1
             x12 = xx2
 
@@ -112,14 +112,14 @@ def rec_read_xj(alpha1_array,alpha2_array,zln,zs,n):
             xjm21 = np.fromfile(inp.xj_path+str(n-3)+"_xj1.bin", dtype='double').reshape((nx1, nx2))
             xjm22 = np.fromfile(inp.xj_path+str(n-3)+"_xj2.bin", dtype='double').reshape((nx1, nx2))
         except:
-            print "No %s files, recalculate XJ..."%(inp.xj_path+str(n-3)+"_xj1.bin")
+            print("No {} files, recalculate XJ...".format(inp.xj_path+str(n-3)+"_xj1.bin"))
             xjm21,xjm22 = rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-2)
 
         try:
             xjm11 = np.fromfile(inp.xj_path+str(n-2)+"_xj1.bin", dtype='double').reshape((nx1, nx2))
             xjm12 = np.fromfile(inp.xj_path+str(n-2)+"_xj2.bin", dtype='double').reshape((nx1, nx2))
         except:
-            print "No %s files, recalculate XJ..."%(inp.xj_path+str(n-2)+"_xj1.bin")
+            print("No {} files, recalculate XJ...".format(inp.xj_path+str(n-2)+"_xj1.bin"))
             xjm11,xjm12 = rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-1)
 
         aijm11 = cf.call_inverse_cic(alpha1_array[n-2],0.0,0.0,xjm11,xjm12,dsi)
@@ -176,7 +176,7 @@ def raytrace_grid_maps_for_zs(haloID, ZS, DATA=1):
     shear1_array = np.zeros((nzlp,ncc,ncc))
     shear2_array = np.zeros((nzlp,ncc,ncc))
 
-    print "-----------------------------------------------", ZS, nzlp
+    print("-----------------------------------------------", ZS, nzlp)
 
     for i in range(nzlp):
         rescale = cf.Da(ZS0)/cf.Da2(zl_array[i],ZS0)*cf.Da2(zl_array[i],ZS)/cf.Da(ZS)
@@ -193,11 +193,11 @@ def raytrace_grid_maps_for_zs(haloID, ZS, DATA=1):
     af1, af2, kf0, sf1, sf2 = ray_tracing_all(alpha1_array,alpha2_array,
                                               kappa0_array,shear1_array,shear2_array,
                                               zl_array,ZS)
-    print "kf0 = ", np.max(kf0)
-    print "af1 = ", np.max(af1)
-    print "af2 = ", np.max(af2)
-    print "sf1 = ", np.max(sf1)
-    print "sf2 = ", np.max(sf2)
+    print("kf0 = ", np.max(kf0))
+    print("af1 = ", np.max(af1))
+    print("af2 = ", np.max(af2))
+    print("sf1 = ", np.max(sf1))
+    print("sf2 = ", np.max(sf2))
     #------------------------------------------------------
     # Save Outputs
     #
@@ -209,8 +209,9 @@ def raytrace_grid_maps_for_zs(haloID, ZS, DATA=1):
     data['sf1'] = sf1.astype(np.float32)
     data['sf2'] = sf2.astype(np.float32)
 
-    data.write('./outputs/' + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5',
+    data.write(inp.outputs_path + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5',
                        path="/raytraced_maps", append=True, overwrite=True)#, compression=True)
+
 
     return data
 

@@ -50,6 +50,7 @@ def shear_vis_gmaps(x1, x2, shear1, shear2, kappa):
 
     pl.xlim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
     pl.ylim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
+    pl.show()
     return 0
 
 
@@ -58,7 +59,7 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
     g2 = shear2
     #---------------------------------------------------------------------
     pl.figure(figsize=(10,10),dpi=80)
-    pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.jet,origin='higher',
+    pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.viridis,origin='higher',
               extent=[-inp.bsz_arc/2.0,
                        inp.bsz_arc/2.0,
                       -inp.bsz_arc/2.0,
@@ -73,6 +74,7 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
         gt2 = g2[i]
 
         ampli = np.sqrt(gt1*gt1+gt2*gt2)
+        if(i%100 == 0): print(ampli)
         alph = np.arctan2(gt2,gt1)/2.0
 
         st_x = x1[i]-ampli*np.cos(alph)*scale_shear
@@ -88,7 +90,7 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
 
     pl.xlim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
     pl.ylim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
-
+    pl.show()
     return 0
 
 #------------------------------------------------------------------------------
@@ -107,7 +109,7 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
     ys2_array = np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5
 
     if type(DATA)==int:
-        data = Table.read('./outputs/' + haloID + '_' + str(zs) + '_raytraced_maps.hdf5', path='/raytraced_maps')
+        data = Table.read(inp.outputs_path + haloID + '_' + str(zs) + '_raytraced_maps.hdf5', path='/raytraced_maps')
 
         af1 = data['af1']
         af2 = data['af2']
@@ -163,12 +165,12 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
     data['sr2'] = sr2_array.astype('float32')
     data['mra'] = mra_array.astype('float32')
 
-    data.write('./outputs/' + haloID + '_' + str(zs) + '_lensing_mocks.hdf5',
+    data.write(inp.outputs_path + haloID + '_' + str(zs) + '_lensing_mocks.hdf5',
                path="/lensing_mocks", append=True, overwrite=True)#, compression=True)
 
     if plot_shears:
         shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
-        shear_vis_grids(xx1, xx2, sf1, sf2, kf0)
+        #shear_vis_gmaps(xx1, xx2, sf1, sf2, kf0)
     else:
         pass
 
@@ -178,4 +180,4 @@ def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
 if __name__ == '__main__':
     halo_id = inp.halo_info[:-1]
     zs_t = 1.5
-    make_lensing_mocks(halo_id, zs_t)
+    make_lensing_mocks(halo_id, zs_t, plot_shears=True)
