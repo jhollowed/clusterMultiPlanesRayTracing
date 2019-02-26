@@ -6,7 +6,8 @@ import inps as inp
 
 
 def loadin_lens_data_zs0_hdf5(haloID):
-    data = Table.read(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5', path='/grid_maps')
+    
+    data = h5py.File(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5')
 
     idx = np.argsort(data['zl'])
     zl_array_zs0 = data['zl'][idx]
@@ -138,27 +139,18 @@ def rec_read_xj(alpha1_array,alpha2_array,zln,zs,n):
         return xj1,xj2
 
 
-def raytrace_grid_maps_for_zs(haloID, ZS, DATA=1):
+def raytrace_grid_maps_for_zs(haloID, ZS):
     #------------------------------------------------------
     # Load in lensing maps
     #
 
-    if type(DATA)==int:
-        alpha1_array_zs0, \
-        alpha2_array_zs0, \
-        kappa0_array_zs0, \
-        shear1_array_zs0, \
-        shear2_array_zs0, \
-        zl_array_zs0 = loadin_lens_data_zs0_hdf5(haloID)
-    else:
-        alpha1_array_zs0 = DATA['alpha1']
-        alpha2_array_zs0 = DATA['alpha2']
-        kappa0_array_zs0 = DATA['kappa0']
-        shear1_array_zs0 = DATA['shear1']
-        shear2_array_zs0 = DATA['shear2']
-        zl_array_zs0 = DATA['zl']
-        del DATA
-
+    alpha1_array_zs0, \
+    alpha2_array_zs0, \
+    kappa0_array_zs0, \
+    shear1_array_zs0, \
+    shear2_array_zs0, \
+    zl_array_zs0 = loadin_lens_data_zs0_hdf5(haloID)
+    
     # print type(alpha1_array_zs0)
     # print type(zl_array_zs0)
     ZS0 = inp.zs0
