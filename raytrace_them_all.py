@@ -201,15 +201,13 @@ def raytrace_grid_maps_for_zs(haloID, ZS):
     #
     
     data = h5py.File(inp.outputs_path + haloID + '_' + str(ZS) + '_raytraced_maps.hdf5', 'w')
-    ZS = np.atleast_1d(ZS)
-
-    for i in range(len(ZS)):
-        source_plane = data.create_group('{}'.format(ZS[i]))
-        source_plane.create_dataset('kappa0', data=kappa0_array[i], dtype='float32')
-        source_plane.create_dataset('alpha1', data=alpha1_array[i], dtype='float32')
-        source_plane.create_dataset('alpha2', data=alpha2_array[i], dtype='float32')
-        source_plane.create_dataset('shear1', data=shear1_array[i], dtype='float32')
-        source_plane.create_dataset('shear2', data=shear2_array[i], dtype='float32')
+    
+    source_plane = data.create_group('zs_{:.4f}'.format(ZS))
+    source_plane.create_dataset('kappa0', data=kf0, dtype='float32')
+    source_plane.create_dataset('alpha1', data=af1, dtype='float32')
+    source_plane.create_dataset('alpha2', data=af2, dtype='float32')
+    source_plane.create_dataset('shear1', data=sf1, dtype='float32')
+    source_plane.create_dataset('shear2', data=sf2, dtype='float32')
 
 
 if __name__ == '__main__':
