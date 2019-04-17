@@ -1,11 +1,32 @@
+import pdb
+import inps
+import h5py
+import glob
 import numpy as np
 import pylab as pl
+import inps as inp
+import cfuncs as cf
 from astropy.table import Table
 
-import cfuncs as cf
-import inps as inp
+def Nz_Chang2014(z, case='fiducial', sys='raw'):
+    """
+    Computes the forecasted LSST lensing source density, n_eff, in arcmin^-2
+    """
 
+    fiducial = {'a':1.24, 'z0':0.51, 'B':1.01, 'neff_raw':37, 'neff_blending':31, 'neff_masking':26}
+    optimistic = {'a':1.23, 'z0':0.59, 'B':1.05, 'neff_raw':48, 'neff_blending':36, 'neff_masking':31}
+    conservative = {'a':1.28, 'z0':0.41, 'B':0.97, 'neff_raw':24, 'neff_blending':22, 'neff_masking':18}
+    p = {'fiducial':fiducial, 'optimistic':optimistic, 'conservative':conservative}
 
+    a = p[case]['a']
+    z0 = p[case]['z0']
+    B = p[case]['B']
+    neff = p[case]['neff_{}'.format(sys)]
+
+    Pz = z**a * np.exp(-(z/z0)**B)
+    return neff*Pz
+
+    
 def shear_vis_gmaps(x1, x2, shear1, shear2, kappa):
 
     nnx, nny = np.shape(kappa)
@@ -65,16 +86,13 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
                       -inp.bsz_arc/2.0,
                        inp.bsz_arc/2.0,])
 
-    scale_shear = 4000
-    ngals = 5000
-    index = np.random.choice(np.linspace(0, len(x1)-1, len(x1)).astype('int'), ngals)
-
-    for i in index:
+    scale_shear = 1000
+    
+    for i in range(len(g1)):
         gt1 = g1[i]
         gt2 = g2[i]
 
         ampli = np.sqrt(gt1*gt1+gt2*gt2)
-        if(i%100 == 0): print(ampli)
         alph = np.arctan2(gt2,gt1)/2.0
 
         st_x = x1[i]-ampli*np.cos(alph)*scale_shear
@@ -93,94 +111,124 @@ def shear_vis_mocks(x1, x2, shear1, shear2, kappa):
     pl.show()
     return 0
 
-#------------------------------------------------------------------------------
-def make_lensing_mocks(haloID, zs, DATA=1, plot_shears=False):
+
+def make_lensing_mocks(haloID, nsrcs=Nz_Chang2014, zs=None, plot_shears=False):
+    """
+    Performs interpolation on ray tracing maps, writing the result to an HDF file, the location
+    of which is specified in inps.py
+    
+    Parameters
+    ----------
+    haloID : string
+        ID of the target halo (must match subdirectory name at ray-tracing output location)
+    nsrcs : int or callable or None
+        If passed as an int, this is the number of sources to randomly place in the fov. This is 
+        useful if creating a mock at one source plane; if using many source planes, then the lower
+        redshift will effectively be weighted more strongly (nsrcs is constant while the angular scale
+        grows).
+        If a callable, then a function to compute the number distribution N(z) should be given, and
+        will be called at each source plane redshift, where galaxies will be populated randomly in 
+        angular space, with their count inferred from N(z). The callable is expected to return N(z)
+        in armin^-2
+        Defaults to Nz_Chang2014().
+    zs : float array or None
+        Source plane redshifts to include. If None, use all source plaes given in ray-tracing outputs
+        for the halo spcified in haloID. Defaults to None
+    theta1 : float array or None **DEPRECATED**
+        azimuthal angular coordinate of the sources, in arcsec. If None, then nsrcs is assumed to have
+        been passed, and theta1 will be generated from a uniform random distribution on the fov. If not
+        None, then nsrcs should be None, else will throw an error. Defaults to None.
+    theta2 : float array or None **DEPRECATED**
+        coalitude angular coordinate of the sources, in arcsec. If None, then nsrcs is assumed to have
+        been passed, and theta1 will be generated from a uniform random distribution on the fov. If not
+        None, then nsrcs should be None, else will throw an error. Defaults to None.
+    plot_shears : boolean
+        Whether or not to visualize the resulting mock at each source plane. Defaults to False.
+    """
+    
+    print('\n ---------- creating lensing mocks for halo {} ---------- '.format(haloID))
+    
     xx1 = inp.xi1
     xx2 = inp.xi2
+    
+    # read in raytrace result
+    raytrace_path = glob.glob('{}/*raytraced_maps.hdf5'.format(inp.outputs_path, haloID))
+    assert len(raytrace_path)==1, "Exactly one raytrace file must be present in the target path"
 
-    #------------------------------------------------------
-    # gtheta = np.fromfile(inp.gals_path+"theta_1.5_gals.bin", dtype='float32')
-    # gphi = np.fromfile(inp.gals_path+"phi_1.5_gals.bin", dtype='float32')
-    # ys1_array = (gtheta/3600.0-87.5)*3600.
-    # ys2_array = (gphi/3600.0-2.5)*3600.
-
-    nsrcs = 6000
-    ys1_array = np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5
-    ys2_array = np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5
-
-    if type(DATA)==int:
-        data = Table.read(inp.outputs_path + haloID + '_' + str(zs) + '_raytraced_maps.hdf5', path='/raytraced_maps')
-
-        af1 = data['af1']
-        af2 = data['af2']
-        kf0 = data['kf0']
-        sf1 = data['sf1']
-        sf2 = data['sf2']
-
-        del data
+    raytrace_file = h5py.File(raytrace_path[0])
+    source_plane_keys = list(raytrace_file.keys())
+    source_planes = np.array([float(s.split('_')[-1]) for s in source_plane_keys])
+    if(zs is None): zs = source_planes
+    
+    # define interpolation points and output file
+    # if nsrcs is callable, calulate N(z) and randomly populate source planes
+    # if nsrcs is an int, randomly populate source planes with uniform density
+    if hasattr(nsrcs, '__call__'): 
+        box_arcmin2 = (inp.bsz_arc / 60)**2
+        Nz = (nsrcs(zs) * box_arcmin2).astype(int)
+        ys1_arrays = np.array([np.random.random(nn)*inp.bsz_arc-inp.bsz_arc*0.5 for nn in Nz])
+        ys2_arrays = np.array([np.random.random(nn)*inp.bsz_arc-inp.bsz_arc*0.5 for nn in Nz]) 
     else:
-        af1 = DATA['af1']#.data
-        af2 = DATA['af2']#.data
-        kf0 = DATA['kf0']#.data
-        sf1 = DATA['sf1']#.data
-        sf2 = DATA['sf2']#.data
-
-        del DATA
+        ys1_arrays = np.array([np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5 for i in range(len(zs))])
+        ys2_arrays = np.array([np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5 for i in range(len(zs))])
     
-    shear_vis_gmaps(xx1, xx2, sf1, sf2, kf0)
-
-    #------------------------------------------------------
-    # Deflection Angles and lensed Positions
-    #
-
-    yf1 = xx1 - af1
-    yf2 = xx2 - af2
-    xr1_array, xr2_array = cf.call_mapping_triangles_arrays_omp(ys1_array,ys2_array,xx1,xx2,yf1,yf2)
-    # xr1_array, xr2_array = ys1_array, ys2_array
+    out_file = h5py.File('{}/{}_lensing_mocks.hdf5'.format(inp.outputs_path, haloID), 'w')
     
-    #------------------------------------------------------
-    # Update Lensing Signals of Lensed Positions
-    #
+    print('created out file {}'.format(out_file.filename))
+    print('reading {}'.format(raytrace_file.filename))
 
-    kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
-    sr1_array = cf.call_inverse_cic_single(sf1,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
-    sr2_array = cf.call_inverse_cic_single(sf2,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
+    # loop over source planes
+    for i in range(len(source_planes)):
+        zsp = source_planes[i]
+        if zsp not in zs: continue
+        zkey = source_plane_keys[i]
+        print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
+        
+        # get positions at this source plane
+        ys1_array = ys1_arrays[i]
+        ys2_array = ys2_arrays[i]
 
-    mfa = cf.alphas_to_mu(af1, af2, inp.bsz_arc,inp.nnn)
-    mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
-    #------------------------------------------------------
-    # Save Outputs
-    #
+        af1 = raytrace_file[zkey]['alpha1'].value
+        af2 = raytrace_file[zkey]['alpha2'].value
+        kf0 = raytrace_file[zkey]['kappa0'].value
+        sf1 = raytrace_file[zkey]['shear1'].value
+        sf2 = raytrace_file[zkey]['shear2'].value
+        
+        # Deflection Angles and lensed Positions
+        yf1 = xx1 - af1
+        yf2 = xx2 - af2
+        xr1_array, xr2_array = cf.call_mapping_triangles_arrays_omp(ys1_array,ys2_array,xx1,xx2,yf1,yf2)
+        # xr1_array, xr2_array = ys1_array, ys2_array
+        
+        # Update Lensing Signals of Lensed Positions
+        kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
+        sr1_array = cf.call_inverse_cic_single(sf1,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
+        sr2_array = cf.call_inverse_cic_single(sf2,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
 
-#     xr1_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_xr1.bin")
-#     xr2_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_xr2.bin")
-#     kr0_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_kr0.bin")
-#     sr1_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_sr1.bin")
-#     sr2_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_sr2.bin")
-#     mra_array.astype('float32').tofile(inp.mocks_path + "cl_" + '%.6f'%(zs) + "_mra.bin")
-
-    data = Table()
-
-    data['xr1'] = xr1_array.astype('float32')
-    data['xr2'] = xr2_array.astype('float32')
-    data['kr0'] = kr0_array.astype('float32')
-    data['sr1'] = sr1_array.astype('float32')
-    data['sr2'] = sr2_array.astype('float32')
-    data['mra'] = mra_array.astype('float32')
+        mfa = cf.alphas_to_mu(af1, af2, inp.bsz_arc,inp.nnn)
+        mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,inp.dsx_arc)
+        
+        # Save Outputs
+        out_file.create_group(zkey)
+        out_file[zkey]['xr1'] = xr1_array.astype('float32')
+        out_file[zkey]['xr2'] = xr2_array.astype('float32')
+        out_file[zkey]['kr0'] = kr0_array.astype('float32')
+        out_file[zkey]['sr1'] = sr1_array.astype('float32')
+        out_file[zkey]['sr2'] = sr2_array.astype('float32')
+        out_file[zkey]['mra'] = mra_array.astype('float32')
+        
+        if plot_shears:
+            shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
     
-    pdb.set_trace()
-    data.write(inp.outputs_path + haloID + '_' + str(zs) + '_lensing_mocks.hdf5',
-               path="/lensing_mocks", append=True, overwrite=True)#, compression=True)
-
-    if plot_shears:
-        shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
-    else:
-        pass
-
-    return data
+    raytrace_file.close()
+    out_file.close()
+    print('done')
 
 
 if __name__ == '__main__':
-    halo_id = inp.halo_info[:-1]
-    zs_t = 0.75
-    make_lensing_mocks(halo_id, zs_t, plot_shears=True)
+
+    halo_ids_avail = [s.split('/')[-1]+'/' for s in glob.glob('./data/lenses/prtcls/halo*')]
+    for halo_id in halo_ids_avail:
+        inp = inps.inputs(halo_id)
+        halo_id = inp.halo_info[:-1]
+        make_lensing_mocks(halo_id, nsrcs=Nz_Chang2014, plot_shears=False)

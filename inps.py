@@ -46,7 +46,7 @@ class inputs():
         # grids_maps outputs
         #
 
-        self.outputs_path = "/projects/DarkUniverse_esp/jphollowed/test4/{}".format(self.halo_info)
+        self.outputs_path = "/projects/DarkUniverse_esp/jphollowed/outerRim/raytraced_halos/{}".format(self.halo_info)
         self.gmaps_path = self.outputs_path + "grids_maps/"
         self.alpha_path = self.gmaps_path + "alpha_maps/"
         self.kappa_path = self.gmaps_path + "kappa_maps/"

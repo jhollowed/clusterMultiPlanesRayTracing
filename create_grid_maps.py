@@ -26,20 +26,17 @@ class cd:
 
 def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     
-    #---------------------------------------
-    # Load in particles of one lens plane
-    #
-   
-    #if(int(snapid) > 430): return
-        
+    print('\n---------- working on {} ----------'.format(snapid))
+    
+    # Load in particles of one lens plane    
     # write out/read in denisty file
     write_dir = '{}/dtfe_dens'.format(inp.outputs_path)
     if not os.path.exists(write_dir):
             os.makedirs(write_dir)
     dtfe_file = '{}/{}_dtfe_input.bin'.format(write_dir, snapid)
-
+    
     # read in particle data
-    print('reading redshift')
+    print('findign shell redshift')
     zl_array = np.fromfile(file_name_base+str(snapid)+"/"+"redshift."+str(snapid)+".bin", dtype = "f")
     zl_median = np.median(zl_array)     
     mp_array = np.ones(len(zl_array))*inp.mpp
@@ -49,24 +46,22 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     bsz_mpc = inp.bsz_arc*cf.Dc(zl_median)/cf.apr
     # dsx_mpc = bsz_mpc/ncc
     
-    noskip = False
-    if(skip_sdens == True):    
+    noskip = True
+    if(skip_sdens == True and noskip == False):    
         try:
             # read in result
-
-            print('---------- reading density at {} ----------'.format(snapid))
+            print('reading density'.format(snapid))
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
         except FileNotFoundError: 
             print('Cant skip density calculation for {}; doesnt exist'.format(snapid))
             noskip = True
-
+    
     if(skip_sdens == False or noskip == True):
-        print('---------- working on {} ----------'.format(snapid))
         print('reading x, y, z')
         xxl_array = np.fromfile(file_name_base+str(snapid)+"/"+"x."+str(snapid)+".bin", dtype = "f")
         yyl_array = np.fromfile(file_name_base+str(snapid)+"/"+"y."+str(snapid)+".bin", dtype = "f")
         zzl_array = np.fromfile(file_name_base+str(snapid)+"/"+"z."+str(snapid)+".bin", dtype = "f")
-        
+       
         if len(xxl_array) < 10:
             return 1
         #xo3 = cf.Dc(zl_array)
@@ -90,23 +85,13 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
         #---------------------------------------
         # Calculate convergence maps
         #
-
-        idx1 = x1_array > -0.5*bsz_mpc
-        idx2 = x1_array <= 0.5*bsz_mpc
-        idx3 = x2_array > -0.5*bsz_mpc
-        idx4 = x2_array <= 0.5*bsz_mpc
-
-        idx = idx1&idx2&idx3&idx4
-
-        x1in = x1_array[idx]
-        x2in = x2_array[idx]
-        x3in = x3_array[idx]
-        mpin = mp_array[idx]
-        
+        x1in = x1_array
+        x2in = x2_array
+        x3in = x3_array
+        mpin = mp_array
         npp = len(mpin)
-        if npp < 20:
-            return 1
-        
+        if npp < 10:
+            return 1 
 
         # ------ do density estiamtion via system call to SDTFE exe ------
  
@@ -173,10 +158,11 @@ def create_grid_maps_for_zs0(haloID, skip_sdens=False):
     
     print('\n ---------- creating grid maps for halo {} ---------- '.format(haloID))
 
-    data = h5py.File(inp.outputs_path + haloID + '_' + str(inp.zs0) + '_gmaps.hdf5', 'w')
+    out_file = h5py.File('{}/{}_{}_gmaps.hdf5'.format(inp.outputs_path, haloID, inp.zs0), 'w')
+    print('created out file at {}'.format(out_file.filename))
+    print('reading lightcone cutout files at {}'.format(inp.input_prtcls_dir))
 
     nslices = len(inp.snapid_list)
-
     for i in range(nslices):
         output_ar = convert_one_from_dir(inp.input_prtcls_dir+"STEPCutout",
                                          inp.snapid_list[i], skip_sdens=skip_sdens)
@@ -191,22 +177,19 @@ def create_grid_maps_for_zs0(haloID, skip_sdens=False):
             alpha2_ar = output_ar[5]
             shear1_ar = output_ar[6]
             shear2_ar = output_ar[7]
-
-        del output_ar
  
-        lens_plane = data.create_group('{}'.format(inp.snapid_list[i]))
-        lens_plane.create_dataset('zl', data=zl_ar, dtype='float32')
-        lens_plane.create_dataset('zs', data=zs_ar, dtype='float32')
-        lens_plane.create_dataset('kappa0', data=kappa0_ar, dtype='float32')
-        lens_plane.create_dataset('alpha1', data=alpha1_ar, dtype='float32')
-        lens_plane.create_dataset('alpha2', data=alpha2_ar, dtype='float32')
-        lens_plane.create_dataset('shear1', data=shear1_ar, dtype='float32')
-        lens_plane.create_dataset('shear2', data=shear2_ar, dtype='float32')
+        zl_group = '{}'.format(inp.snapid_list[i])
+        out_file.create_group(zl_group)
+        out_file[zl_group]['zl'] = np.atleast_1d(zl_ar).astype('float32')
+        out_file[zl_group]['zs'] = np.atleast_1d(zs_ar).astype('float32')
+        out_file[zl_group]['kappa0'] = kappa0_ar.astype('float32')
+        out_file[zl_group]['alpha1'] = alpha1_ar.astype('float32')
+        out_file[zl_group]['alpha2'] = alpha2_ar.astype('float32')
+        out_file[zl_group]['shear1'] = shear1_ar.astype('float32')
+        out_file[zl_group]['shear2'] = shear2_ar.astype('float32')
 
-    del snapid_ar, zl_ar, zs_ar
-    del kappa0_ar, alpha1_ar, alpha2_ar, shear1_ar, shear2_ar
-
-    data.close()
+    out_file.close()
+    print('done')
 
 
 if __name__ == '__main__':
