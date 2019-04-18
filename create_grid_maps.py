@@ -36,7 +36,7 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     dtfe_file = '{}/{}_dtfe_input.bin'.format(write_dir, snapid)
     
     # read in particle data
-    print('findign shell redshift')
+    print('finding shell redshift')
     zl_array = np.fromfile(file_name_base+str(snapid)+"/"+"redshift."+str(snapid)+".bin", dtype = "f")
     zl_median = np.median(zl_array)     
     mp_array = np.ones(len(zl_array))*inp.mpp
@@ -46,7 +46,7 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     bsz_mpc = inp.bsz_arc*cf.Dc(zl_median)/cf.apr
     # dsx_mpc = bsz_mpc/ncc
     
-    noskip = True
+    noskip = False
     if(skip_sdens == True and noskip == False):    
         try:
             # read in result
@@ -117,7 +117,8 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
         # read in result
         sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
     
-
+    
+    print('computing convergence')
     sdens_cmpch = sdens_cmpch.reshape(inp.nnn, inp.nnn)
     kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
      
@@ -145,6 +146,7 @@ def convert_one_from_dir(file_name_base, snapid, skip_sdens=False):
     # Calculate higher order lensing maps
     #
 
+    print('computing defelctions and shears')
     al11, al12 = np.gradient(alpha1, inp.dsx_arc)
     al21, al22 = np.gradient(alpha2, inp.dsx_arc)
     # mua = 1.0/(1.0 - (al11 + al22) + al11*al22 - al12*al21)

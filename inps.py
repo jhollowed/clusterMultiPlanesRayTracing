@@ -19,9 +19,9 @@ class inputs():
         self.halo_info = halo_cutout_parent_dir
         self.input_prtcls_dir = "./data/lenses/prtcls/" + self.halo_info
         self.halo_prop_file = '{}/properties.csv'.format(self.input_prtcls_dir)
-        self.halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',')
-        self.halo_shell = int(self.halo_props[1])
-        self.bsz = float(self.halo_props[8])/3600. # degree
+        self.halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
+        self.halo_shell = int(self.halo_props['halo_lc_shell'])
+        self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree
 
         self.sdens_path = "./data/lenses/sdens/"
         self.gals_path = "./data/sources/points/"

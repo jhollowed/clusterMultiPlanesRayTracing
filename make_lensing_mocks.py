@@ -8,7 +8,7 @@ import inps as inp
 import cfuncs as cf
 from astropy.table import Table
 
-def Nz_Chang2014(z, case='fiducial', sys='raw'):
+def Nz_Chang2014(z, case='conservative', sys='masking'):
     """
     Computes the forecasted LSST lensing source density, n_eff, in arcmin^-2
     """
@@ -167,7 +167,7 @@ def make_lensing_mocks(haloID, nsrcs=Nz_Chang2014, zs=None, plot_shears=False):
         box_arcmin2 = (inp.bsz_arc / 60)**2
         Nz = (nsrcs(zs) * box_arcmin2).astype(int)
         ys1_arrays = np.array([np.random.random(nn)*inp.bsz_arc-inp.bsz_arc*0.5 for nn in Nz])
-        ys2_arrays = np.array([np.random.random(nn)*inp.bsz_arc-inp.bsz_arc*0.5 for nn in Nz]) 
+        ys2_arrays = np.array([np.random.random(nn)*inp.bsz_arc-inp.bsz_arc*0.5 for nn in Nz])
     else:
         ys1_arrays = np.array([np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5 for i in range(len(zs))])
         ys2_arrays = np.array([np.random.random(nsrcs)*inp.bsz_arc-inp.bsz_arc*0.5 for i in range(len(zs))])
