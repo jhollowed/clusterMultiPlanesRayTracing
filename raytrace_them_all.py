@@ -1,3 +1,4 @@
+import sys
 import pdb
 import glob
 import inps
@@ -6,27 +7,37 @@ import numpy as np
 import cfuncs as cf
 from astropy.table import Table
 
-def loadin_lens_data_zs0_hdf5(haloID):
+def loadin_lens_data_zs0_hdf5(haloID, max_planes=None):
     
     gmaps_path = glob.glob('{}/{}*gmaps.hdf5'.format(inp.outputs_path, haloID))
     assert len(gmaps_path)==1, "Exactly one raytrace file must be present in the target path"
     print('read lensing maps from {}'.format(gmaps_path[0]))
     
     gmaps_file = h5py.File(gmaps_path[0])
-    lens_shells = np.array(list(gmaps_file.keys()))
-    lens_zs = np.squeeze([gmaps_file[shell]['zl'].value for shell in lens_shells])
+    lens_planes = np.array(list(gmaps_file.keys()))
+    lens_zs = np.squeeze([gmaps_file[plane]['zl'].value for plane in lens_planes])
     idx = np.argsort(lens_zs)
-    zl_array_zs0 = lens_zs[idx]
+    zl_array_zs0_all = lens_zs[idx]
+    lens_planes = lens_planes[idx]
+
+    if(max_planes is not None):
+        halo_plane_idx = np.where(lens_planes == str(inp.halo_shell))[0][0]
+        fg_planes = min([max_planes, halo_plane_idx])
+        bg_planes = min([max_planes, (len(lens_planes)-halo_plane_idx)-1])
+        lens_planes = lens_planes[ halo_plane_idx-fg_planes : halo_plane_idx+bg_planes ]
+        zl_array_zs0 = lens_zs[ halo_plane_idx-fg_planes : halo_plane_idx+bg_planes ]
+    else:
+        zl_array_zs0 = zl_array_zs0_all
     
-    kappa0_array_zs0 = np.array([gmaps_file[shell]['kappa0'].value for shell in lens_shells[idx]])
-    alpha1_array_zs0 = np.array([gmaps_file[shell]['alpha1'].value for shell in lens_shells[idx]])
-    alpha2_array_zs0 = np.array([gmaps_file[shell]['alpha2'].value for shell in lens_shells[idx]])
-    shear1_array_zs0 = np.array([gmaps_file[shell]['shear1'].value for shell in lens_shells[idx]])
-    shear2_array_zs0 = np.array([gmaps_file[shell]['shear2'].value for shell in lens_shells[idx]])
+    kappa0_array_zs0 = np.array([gmaps_file[plane]['kappa0'].value for plane in lens_planes])
+    alpha1_array_zs0 = np.array([gmaps_file[plane]['alpha1'].value for plane in lens_planes])
+    alpha2_array_zs0 = np.array([gmaps_file[plane]['alpha2'].value for plane in lens_planes])
+    shear1_array_zs0 = np.array([gmaps_file[plane]['shear1'].value for plane in lens_planes])
+    shear2_array_zs0 = np.array([gmaps_file[plane]['shear2'].value for plane in lens_planes])
 
-    gmaps_file.close()
-
-    return alpha1_array_zs0, alpha2_array_zs0, kappa0_array_zs0, shear1_array_zs0, shear2_array_zs0, zl_array_zs0
+    gmaps_file.close() 
+    return alpha1_array_zs0, alpha2_array_zs0, kappa0_array_zs0, shear1_array_zs0,\
+           shear2_array_zs0, zl_array_zs0, zl_array_zs0_all
 
 
 def ray_tracing_all(alpha1_array,alpha2_array, kappas_array, shear1_array, shear2_array, zl_array, zs):
@@ -147,7 +158,7 @@ def rec_read_xj(alpha1_array,alpha2_array,zln,zs,n):
         return xj1,xj2
 
 
-def raytrace_grid_maps_for_zs(haloID, ZS=None):
+def raytrace_grid_maps_for_zs(haloID, ZS=None, max_planes=None):
     """
     Performs ray tracing at the source planes at redshift ZS
 
@@ -158,6 +169,11 @@ def raytrace_grid_maps_for_zs(haloID, ZS=None):
     ZS : float array
         redshifts at which to perform ray tracing on the grid points. If None, then use each 
         lens plane in the grid maps as a source plane. Defaults to None.
+    max_planes : int
+        maximum number of planes about the halo plane to include in the ray tracing (e.g. if
+        max_planes = 4, then include at most four foreground planes and four background planes
+        in the calculation. Sources will still be placed to the full depth of the cutout, but
+        will be separated by empty space beyond the nine total included selected planes.
     """
     
     print('\n ---------- creating ray trace maps for halo {} ---------- '.format(haloID))
@@ -168,12 +184,16 @@ def raytrace_grid_maps_for_zs(haloID, ZS=None):
     kappa0_array_zs0, \
     shear1_array_zs0, \
     shear2_array_zs0, \
-    zl_array_zs0 = loadin_lens_data_zs0_hdf5(haloID)
-    print('{} lens planes located at {}'.format(len(zl_array_zs0), zl_array_zs0))
+    zl_array_zs0, zl_array_zs0_all = loadin_lens_data_zs0_hdf5(haloID, max_planes)
+    print('{} lens planes found-- using {} located at'.format(
+          len(zl_array_zs0_all), len(zl_array_zs0), zl_array_zs0))
     
     ZS0 = inp.zs0
     ncc = inp.nnn
-    out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(inp.outputs_path, haloID), 'w')
+    if(max_planes is not None):
+        out_file = h5py.File('{}/{}_max{}_raytraced_maps.hdf5'.format(inp.outputs_path, haloID, max_planes), 'w')
+    else:
+        out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(inp.outputs_path, haloID), 'w')
     print('created out file {}'.format(out_file.filename))
     if(ZS is None):
         ZS = zl_array_zs0
@@ -230,4 +250,4 @@ if __name__ == '__main__':
     for halo_id in halo_ids_avail:
         inp = inps.inputs(halo_id)
         halo_id = inp.halo_info[:-1]
-        raytrace_grid_maps_for_zs(halo_id)
+        raytrace_grid_maps_for_zs(halo_id, max_planes = int(sys.argv[1]))

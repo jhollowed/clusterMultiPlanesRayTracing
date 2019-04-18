@@ -21,6 +21,7 @@ class inputs():
         self.halo_prop_file = '{}/properties.csv'.format(self.input_prtcls_dir)
         self.halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
         self.halo_shell = int(self.halo_props['halo_lc_shell'])
+        self.halo_redshift = int(self.halo_props['halo_redshift'])
         self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree
 
         self.sdens_path = "./data/lenses/sdens/"
