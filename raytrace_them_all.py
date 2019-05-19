@@ -51,13 +51,13 @@ class ray_tracer():
         lens_zs = np.squeeze([gmaps_file[plane]['zl'].value for plane in lens_planes])
         idx = np.argsort(lens_zs)
         self.z_lens_planes = lens_zs[idx]
-        lens_planes = lens_planes[idx]
+        self.lens_planes = lens_planes[idx]
         
-        self.kappa_zs0 = np.array([gmaps_file[plane]['kappa0'].value for plane in lens_planes])
-        self.alpha1_zs0 = np.array([gmaps_file[plane]['alpha1'].value for plane in lens_planes])
-        self.alpha2_zs0 = np.array([gmaps_file[plane]['alpha2'].value for plane in lens_planes])
-        self.shear1_zs0 = np.array([gmaps_file[plane]['shear1'].value for plane in lens_planes])
-        self.shear2_zs0 = np.array([gmaps_file[plane]['shear2'].value for plane in lens_planes])
+        self.kappa_zs0 = np.array([gmaps_file[plane]['kappa0'].value for plane in self.lens_planes])
+        self.alpha1_zs0 = np.array([gmaps_file[plane]['alpha1'].value for plane in self.lens_planes])
+        self.alpha2_zs0 = np.array([gmaps_file[plane]['alpha2'].value for plane in self.lens_planes])
+        self.shear1_zs0 = np.array([gmaps_file[plane]['shear1'].value for plane in self.lens_planes])
+        self.shear2_zs0 = np.array([gmaps_file[plane]['shear2'].value for plane in self.lens_planes])
 
         gmaps_file.close() 
    
@@ -94,7 +94,7 @@ class ray_tracer():
             zs = ZS[i]
             zl_array = self.z_lens_planes[self.z_lens_planes<(zs)]
             nzlp = len(zl_array)
-
+            
             alpha1_array = np.zeros((nzlp,ncc,ncc))
             alpha2_array = np.zeros((nzlp,ncc,ncc))
             kappa0_array = np.zeros((nzlp,ncc,ncc))

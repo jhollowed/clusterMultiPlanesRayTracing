@@ -1,4 +1,4 @@
-
+import pdb
 import h5py
 import glob
 import numpy as np
@@ -132,6 +132,7 @@ class lensing_mock_generator():
             
             zsp =zs[i]
             zkey = self.source_plane_keys[i]
+
             print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
             
             # get positions at this source plane
@@ -168,9 +169,9 @@ class lensing_mock_generator():
             self.out_file[zkey]['sr1'] = sr1_array.astype('float32')
             self.out_file[zkey]['sr2'] = sr2_array.astype('float32')
             self.out_file[zkey]['mra'] = mra_array.astype('float32')
-            
+           
             if vis_shears:
-                shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
+                self.shear_vis_mocks(xr1_array, xr2_array, sr1_array, sr2_array, kf0)
         
         self.raytrace_file.close()
         self.out_file.close()
@@ -191,11 +192,11 @@ class lensing_mock_generator():
         pl.figure(figsize=(10,10),dpi=80)
     #     pl.axes([0.0,0.0,1.0,1.0])
     #     pl.axis("off")
-        pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.jet,origin='higher',
-                  extent=[-inp.bsz_arc/2.0,
-                           inp.bsz_arc/2.0,
-                          -inp.bsz_arc/2.0,
-                           inp.bsz_arc/2.0,])
+        pl.imshow(np.log10(kappa.T),aspect='equal',cmap=pl.cm.jet,origin='higher',
+                  extent=[-self.inp.bsz_arc/2.0,
+                           self.inp.bsz_arc/2.0,
+                          -self.inp.bsz_arc/2.0,
+                           self.inp.bsz_arc/2.0,])
 
         ndiv = 8
         scale_shear = 80
@@ -219,8 +220,8 @@ class lensing_mock_generator():
                 pl.plot([md_x,ed_x],[md_y,ed_y],'w-',linewidth=1.0)
                 pl.plot([md_x,st_x],[md_y,st_y],'w-',linewidth=1.0)
 
-        pl.xlim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
-        pl.ylim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
+        pl.xlim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
+        pl.ylim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
         pl.show()
         return 0
 
@@ -231,10 +232,10 @@ class lensing_mock_generator():
         #---------------------------------------------------------------------
         pl.figure(figsize=(10,10),dpi=80)
         pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.viridis,origin='higher',
-                  extent=[-inp.bsz_arc/2.0,
-                           inp.bsz_arc/2.0,
-                          -inp.bsz_arc/2.0,
-                           inp.bsz_arc/2.0,])
+                  extent=[-self.inp.bsz_arc/2.0,
+                           self.inp.bsz_arc/2.0,
+                          -self.inp.bsz_arc/2.0,
+                           self.inp.bsz_arc/2.0,])
 
         scale_shear = 1000
         
@@ -256,7 +257,7 @@ class lensing_mock_generator():
             pl.plot([md_x,ed_x],[md_y,ed_y],'w-',linewidth=1.0)
             pl.plot([md_x,st_x],[md_y,st_y],'w-',linewidth=1.0)
 
-        pl.xlim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
-        pl.ylim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
+        pl.xlim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
+        pl.ylim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
         pl.show()
         return 0

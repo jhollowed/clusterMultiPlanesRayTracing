@@ -115,6 +115,10 @@ class grid_map_generator():
             
             # get redshift bounds of lens plane
             lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
+            if lens_plane_bounds[0] < self.inp.halo_redshift and \
+               lens_plane_bounds[1] > self.inp.halo_redshift:
+                   group_prefix = 'halo_plane'
+            else: group_prefix = 'plane'
     
             # set image output flag
             if(isinstance(output_dens_tiffs, float)):
@@ -137,7 +141,7 @@ class grid_map_generator():
                 shear1_ar = output_ar[5]
                 shear2_ar = output_ar[6]
      
-            zl_group = 'plane{}'.format(i)
+            zl_group = '{}{}'.format(group_prefix, i)
             self.out_file.create_group(zl_group)
             self.out_file[zl_group]['zl'] = np.atleast_1d(zl_ar).astype('float32')
             self.out_file[zl_group]['zs'] = np.atleast_1d(zs_ar).astype('float32')
@@ -225,17 +229,8 @@ class grid_map_generator():
             
             # compute fov-centric coordinates:
             # x3 in Mpc/h along the LOS
-            # x1 azimuthal angular coord in arcsec
-            # x2 coaltitude angular coord in arcsec
-            #
-            # note that the coordinates transerve to the line of sight are angular, 
-            # while the coordinate along the los is cartesian; this will result in density
-            # estimations per lens plane that are uniform in angular resolution, but 
-            # increase in spatial resolution with decreasing redshift. Is that fine? I dunno.
-            #
-            # uncommenting the second xin1 and xin2 declarations below will put all 
-            # coordinates in Mpc/h, but that seems like it will screw up ray-tracing
-            # given the cutout geometry
+            # x1 azimuthal angular coord in Mpc/h
+            # x2 coaltitude angular coord in Mpc/h
 
             xo3 = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
             xc3 = (np.max(xo3)+np.min(xo3))*0.5
@@ -243,13 +238,11 @@ class grid_map_generator():
             
             xo1 = tp
             xc1 = (np.max(xo1)+np.min(xo1))*0.5
-            x1in = xo1 - xc1
-            #x1in = np.sin((xo1-xc1)/cf.apr) * xo3
+            x1in = np.sin((xo1-xc1)/cf.apr) * xo3
             
             xo2 = pp
             xc2 = (np.max(xo2)+np.min(xo2))*0.5
-            x2in = xo2 - xc2
-            #x2in = np.sin((xo2-xc2)/cf.apr) * xo3
+            x2in = np.sin((xo2-xc2)/cf.apr) * xo3
             
             #---------------------------------------
             # Calculate convergence maps
@@ -261,18 +254,21 @@ class grid_map_generator():
             dtfe_input_array = np.ravel(np.vstack([x1in, x2in, x3in]))
             dtfe_input_array.astype('f').tofile(dtfe_file)
             
-            # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
-            #               field_width(arcsec) field_depth(Mpc/h) particle_mass mc_box_width 
-            #               n_mc_samples sample_factor image_out? ]
-            
             if(image_out == True): image_out = 1
             else: image_out = 0
 
+            plane_width = (np.tan(( bsz_arc/cf.apr/2)) * xc3) * 2
+            mc_box_width = plane_width/ncc/4
+            plane_depth = np.max(x3in)-np.min(x3in)
+            
+            # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
+            #               field_width(arcsec) field_depth(Mpc/h) particle_mass mc_box_width 
+            #               n_mc_samples sample_factor image_out? ]
             dtfe_args = ["%s"%s for s in 
                          [self.dtfe_exe,
                           dtfe_file, len(mpin), ncc, 0, 0, 0, 
-                          bsz_arc*0.95, np.max(x3in)-np.min(x3in), self.inp.mpp, 
-                          bsz_arc/ncc/4, 4, 1.0, image_out
+                          plane_width, plane_depth, self.inp.mpp, 
+                          mc_box_width, 4, 1.0, image_out
                          ]
                         ]
             print(dtfe_args)

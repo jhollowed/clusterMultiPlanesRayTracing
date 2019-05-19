@@ -11,7 +11,7 @@ cosmo = FlatLambdaCDM(H0=71, Om0=0.264, Ob0=0.044792699861138666)
 
 vc = 2.998e5 #km/s
 G = 4.3011790220362e-09 # Mpc/h (Msun/h)^-1 (km/s)^2
-apr = 206269.43
+apr = 206264.80624709636 #arcsec/radian
 
 def Dc(z):
     res = cosmo.comoving_distance(z).value*cosmo.h
