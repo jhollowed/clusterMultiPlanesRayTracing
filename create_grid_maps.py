@@ -9,6 +9,11 @@ import subprocess
 import os
 import pdb
 import glob
+import sys
+
+def printflush(s):
+    print(s)
+    sys.stdout.flush()
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -25,7 +30,7 @@ class cd:
 
 class grid_map_generator():
 
-    def __init__(self, inp, stdfe_exe = '/home/hollowed/repos/SDTFE/bin/dtfe', overwrite=False):
+    def __init__(self, inp, stdfe_exe = '/home/hollowed/repos/SDTFE/bin/dtfe', overwrite=False, stdout=True):
         '''
         This class implements functions for constructing lensing grid maps on a particle lightcone cutout.
         After initializing with a `halo_inputs` object, the LOS particle data should be read with 
@@ -39,13 +44,24 @@ class grid_map_generator():
             Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build
         overwrite : bool
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
+        stdout : bool
+            Whether or not to supress print statements (useful for parallel runs). `False` means all
+            print statements will be suppressed. Defaults to `True`.
         '''
+        
+        if(stdout == False): 
+            self.print = lambda s: None
+            self.c_out = open(os.devnull, 'w')
+        else: 
+            self.print = printflush
+            self.c_out = None
 
         self.dtfe_exe = stdfe_exe
         self.inp = inp
         mode = 'w' if overwrite else 'a'
         self.out_file = h5py.File('{}/{}_{}_gmaps.hdf5'.format(
                                   self.inp.outputs_path, self.inp.halo_id, self.inp.zs0), mode)
+        self.print('created out file {}'.format(self.out_file.filename))
         self.nslices = self.inp.num_lens_planes
         self.pdir = self.inp.input_prtcls_dir
         
@@ -130,16 +146,13 @@ class grid_map_generator():
             output_ar = self._grids_at_lens_plane(lens_plane_bounds, i, skip_sdens, output_dens_tiffs)
 
             # write output to HDF5 
-            if output_ar == 1:
-                continue
-            else:
-                zl_ar = output_ar[0]
-                zs_ar = output_ar[1]
-                kappa0_ar = output_ar[2]
-                alpha1_ar = output_ar[3]
-                alpha2_ar = output_ar[4]
-                shear1_ar = output_ar[5]
-                shear2_ar = output_ar[6]
+            zl_ar = output_ar[0]
+            zs_ar = output_ar[1]
+            kappa0_ar = output_ar[2]
+            alpha1_ar = output_ar[3]
+            alpha2_ar = output_ar[4]
+            shear1_ar = output_ar[5]
+            shear2_ar = output_ar[6]
      
             zl_group = '{}{}'.format(group_prefix, i)
             self.out_file.create_group(zl_group)
@@ -185,7 +198,7 @@ class grid_map_generator():
 
         '''
         
-        print('\n---------- working on plane {}/{} ----------'.format(idx+1, self.inp.num_lens_planes))
+        self.print('\n---------- working on plane {}/{} ----------'.format(idx+1, self.inp.num_lens_planes))
         
         # write out/read in denisty file
         dtfe_file = '{}/plane{}_dtfe_input.bin'.format(self.inp.dtfe_path, idx)
@@ -194,39 +207,41 @@ class grid_map_generator():
         # Note: zp, zl, zs for particles, lens, sources
         plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
         zp = self.zp_los[plane_mask]
-        zl_median = np.median(zp)
         mpin = np.ones(len(zp))*self.inp.mpp
-            
         zs = self.inp.zs0
         ncc = self.inp.nnn
         bsz_mpc = self.inp.bsz_mpc
         bsz_arc = self.inp.bsz_arc
-       
+        
+        # check has at least minimum particles, else return empty plane
+        if len(zp) < 10:
+            zl_median = np.sum(lens_plane_bounds)/2
+            empty_plane = np.zeros((ncc, ncc), dtype=np.float32)
+            return zl_median, zs, empty_plane, empty_plane, empty_plane, empty_plane, empty_plane
+        else:
+            zl_median = np.median(zp)
+             
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
         if(skip_sdens == True and noskip == False): 
             try:
                 # read in density result
-                print('reading density')
+                self.print('reading density')
                 sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
             except FileNotFoundError: 
-                print('Cant skip density calculation for plane {}; doesnt exist'.format(idx))
+                self.print('Cant skip density calculation for plane {}; doesnt exist'.format(idx))
                 noskip = True
         
         if(skip_sdens == False or noskip == True):
 
-            print('extrcting lens plane from LOS')
+            self.print('extrcting lens plane from LOS')
             xp = self.xxp_los[plane_mask]
             yp = self.yyp_los[plane_mask]
             zp = self.zzp_los[plane_mask]
             tp = self.tp_los[plane_mask]
             pp = self.pp_los[plane_mask]
-            print('{} particles'.format(len(xp)))
+            self.print('{} particles'.format(len(xp)))
            
-            # check has at least minimum particles
-            if len(xp) < 10:
-                return 1
-            
             # compute fov-centric coordinates:
             # x3 in Mpc/h along the LOS
             # x1 azimuthal angular coord in Mpc/h
@@ -257,7 +272,7 @@ class grid_map_generator():
             if(image_out == True): image_out = 1
             else: image_out = 0
 
-            plane_width = (np.tan(( bsz_arc/cf.apr/2)) * xc3) * 2
+            plane_width = 0.95 * ((np.tan(( bsz_arc/cf.apr/2)) * xc3) * 2)
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
             
@@ -271,17 +286,17 @@ class grid_map_generator():
                           mc_box_width, 4, 1.0, image_out
                          ]
                         ]
-            print(dtfe_args)
+            self.print(dtfe_args)
             
             # call process
             with cd(self.inp.dtfe_path):
-                subprocess.run(dtfe_args)
+                subprocess.run(dtfe_args, stdout=self.c_out)
             
             # read in result
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
         
         
-        print('computing convergence')
+        self.print('computing convergence')
         sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
         kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
          
@@ -303,13 +318,13 @@ class grid_map_generator():
             # if mean(mass) >> mean(Universe)
             alpha1, alpha2 = cf.call_kappa0_to_alphas(kappa, self.inp.bsz_arc, ncc)
         else:
-            print("You should define the Boundary Condition first!!!")
+            self.print("You should define the Boundary Condition first!!!")
         
         #---------------------------------------
         # Calculate higher order lensing maps
         #
 
-        print('computing defelctions and shears')
+        self.print('computing defelctions and shears')
         al11, al12 = np.gradient(alpha1, self.inp.dsx_arc)
         al21, al22 = np.gradient(alpha2, self.inp.dsx_arc)
         # mua = 1.0/(1.0 - (al11 + al22) + al11*al22 - al12*al21)

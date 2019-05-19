@@ -6,8 +6,13 @@ import pylab as pl
 import inps as inp
 import cfuncs as cf
 from astropy.table import Table
+import sys
 
-def Nz_Chang2014(z, case='conservative', sys='masking'):
+def printflush(s):
+    print(s)
+    sys.stdout.flush()
+
+def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
     """
     Computes the forecasted LSST lensing source density, n_eff, in arcmin^-2
     """
@@ -22,13 +27,27 @@ def Nz_Chang2014(z, case='conservative', sys='masking'):
     B = p[case]['B']
     neff = p[case]['neff_{}'.format(sys)]
 
-    Pz = z**a * np.exp(-(z/z0)**B)
-    return neff*Pz
+    # integrate over P(z) to z=4
+    z_samp_all = np.linspace(0, 4, 10000)
+    Pz_all = z_samp_all **a * np.exp(-(z_samp_all/z0)**B)
+    tot_all = np.trapz(Pz_all, z_samp_all, np.diff(z_samp_all)[0])
+    
+    # integrate over the specified bounds
+    neff_bins = np.zeros(len(z_bin_edges)-1)
+    for i in range(len(z_bin_edges)-1):
+        z_samp = np.linspace(z_bin_edges[i], z_bin_edges[i+1], 10000)
+        Pz = z_samp**a * np.exp(-(z_samp/z0)**B)
+        tot = np.trapz(Pz, z_samp, np.diff(z_samp)[0])
+
+        # normalize P(z) and multiply by total neff
+        neff_bins[i] = tot/tot_all * neff
+
+    return neff_bins
 
 
 class lensing_mock_generator():
 
-    def __init__(self, inp, overwrite=False):
+    def __init__(self, inp, overwrite=False, stdout=True):
         '''
         This class implements functions for creating lensing mocks via interpolation on ray-traced maps.
         After initializing with a `halo_inputs` object, the raytraced lensing maps computed from the lens 
@@ -41,7 +60,13 @@ class lensing_mock_generator():
             A class instance of halo_inputs giving run parameters and read/write directories
         overwrite : bool
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
+        stdout : bool
+            Whether or not to supress print statements (useful for parallel runs). `False` means all
+            print statements will be suppressed. Defaults to `True`.
         '''
+        
+        if(stdout == False): self.print = lambda s: None
+        else: self.print = printflush
 
         self.inp = inp
         
@@ -53,6 +78,7 @@ class lensing_mock_generator():
         mode = 'w' if overwrite else 'a'
         self.raytrace_path = glob.glob('{}/{}_raytraced_maps.hdf5'.format(self.inp.outputs_path, self.inp.halo_id))
         self.out_file = h5py.File('{}/{}_lensing_mocks.hdf5'.format(self.inp.outputs_path, self.inp.halo_id), mode)
+        self.print('created out file {}'.format(self.out_file.filename))
 
         self.raytrace_file = None
         self.source_planes = None
@@ -92,8 +118,8 @@ class lensing_mock_generator():
             in armin^-2
             Defaults to Nz_Chang2014().
         zs : float array or None
-            Source plane redshifts to include. If None, use all source plaes given in ray-tracing outputs
-            for the halo specified in self.inp. Defaults to None
+            Redshift edges of source planes to include. If None, use all source plaes given in ray-tracing outputs
+            for the halo specified in self.inp. Defaults to None.
         theta1 : float array or None **DEPRECATED**
             azimuthal angular coordinate of the sources, in arcsec. If None, then nsrcs is assumed to have
             been passed, and theta1 will be generated from a uniform random distribution on the fov. If not
@@ -104,11 +130,13 @@ class lensing_mock_generator():
             None, then nsrcs should be None, else will throw an error. Defaults to None.
         """
         
-        print('\n ---------- creating lensing mocks for halo {} ---------- '.format(self.inp.halo_id))
+        self.print('\n ---------- creating lensing mocks for halo {} ---------- '.format(self.inp.halo_id))
         assert self.raytrace_file is not None, "read_raytrace_planes() must be called before interpolation"
        
-        # get source redshifts if not passed
-        if(zs is None): zs = np.squeeze([self.raytrace_file[key]['zs'].value for key in self.source_plane_keys])
+        # get source plane redshift edges if not passed
+        if(zs is None): 
+            zs = [0.0]
+            zs = np.hstack([zs, np.squeeze([self.raytrace_file[key]['zs'][:] for key in self.source_plane_keys])])
         
         # define interpolation points
         # if nsrcs is callable, calulate N(z) and randomly populate source planes
@@ -124,8 +152,8 @@ class lensing_mock_generator():
             ys2_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
        
-        print('created out file {}'.format(self.out_file.filename))
-        print('reading {}'.format(self.raytrace_file.filename))
+        self.print('created out file {}'.format(self.out_file.filename))
+        self.print('reading {}'.format(self.raytrace_file.filename))
 
         # loop over source planes
         for i in range(len(self.source_plane_keys)):
@@ -133,17 +161,17 @@ class lensing_mock_generator():
             zsp =zs[i]
             zkey = self.source_plane_keys[i]
 
-            print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
+            self.print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
             
             # get positions at this source plane
             ys1_array = ys1_arrays[i]
             ys2_array = ys2_arrays[i]
 
-            af1 = self.raytrace_file[zkey]['alpha1'].value
-            af2 = self.raytrace_file[zkey]['alpha2'].value
-            kf0 = self.raytrace_file[zkey]['kappa0'].value
-            sf1 = self.raytrace_file[zkey]['shear1'].value
-            sf2 = self.raytrace_file[zkey]['shear2'].value
+            af1 = self.raytrace_file[zkey]['alpha1'][:]
+            af2 = self.raytrace_file[zkey]['alpha2'][:]
+            kf0 = self.raytrace_file[zkey]['kappa0'][:]
+            sf1 = self.raytrace_file[zkey]['shear1'][:]
+            sf2 = self.raytrace_file[zkey]['shear2'][:]
             
             # Deflection Angles and lensed Positions
             yf1 = self.xx1 - af1
@@ -175,7 +203,7 @@ class lensing_mock_generator():
         
         self.raytrace_file.close()
         self.out_file.close()
-        print('done')
+        self.print('done')
    
 
     def shear_vis_gmaps(self, x1, x2, shear1, shear2, kappa):

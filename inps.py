@@ -69,6 +69,7 @@ class inputs():
         self.dsx_arc = self.dsx*3600.
         self.zs0 = 10.0
         self.mpp = 1148276137.0888093*1.6 # solMass/h
+        self.mpp = self.mpp / cosmo.h
         self.npad = 5
     
         # gen grid points
