@@ -9,7 +9,7 @@ from astropy.table import Table
 
 class ray_tracer():
 
-    def __init__(self, inp):
+    def __init__(self, inp, overwrite=False):
         '''
         This class implements functions for ray tracing through lensing grid maps constructed from 
         a particle lightcone cutout. After initializing with a `halo_inputs` object, the lensing maps
@@ -20,6 +20,8 @@ class ray_tracer():
         ----------
         inp : halo_inputs instance
             A class instance of halo_inputs giving run parameters and read/write directories
+        overwrite : bool
+            Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         '''
         self.inp = inp
         self.kappa_zs0 = None
@@ -29,8 +31,9 @@ class ray_tracer():
         self.shear2_zs0 = None
         self.z_lens_planes = None
         self.z_lens_planes_all = None
+        mode = 'w' if overwrite else 'a'
         self. out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(
-                                    self.inp.outputs_path, self.inp.halo_id), 'w')
+                                    self.inp.outputs_path, self.inp.halo_id), mode)
         print('created out file {}'.format(self.out_file.filename))
    
 
@@ -108,7 +111,7 @@ class ray_tracer():
 
             # Ray-tracing
             print('-------- ray tracing at source plane {:.3f} --------'.format(zs))
-            af1, af2, kf0, sf1, sf2 = self.ray_tracing_all(alpha1_array, alpha2_array, kappa0_array,
+            af1, af2, kf0, sf1, sf2 = self._ray_tracing_all(alpha1_array, alpha2_array, kappa0_array,
                                                            shear1_array, shear2_array, zl_array,zs)
             print('max values:')
             print("kf0 = ", np.max(kf0))
@@ -131,7 +134,7 @@ class ray_tracer():
         print('done')
 
 
-    def ray_tracing_all(self, alpha1_array,alpha2_array, kappas_array, shear1_array, shear2_array, zl_array, zs):
+    def _ray_tracing_all(self, alpha1_array,alpha2_array, kappas_array, shear1_array, shear2_array, zl_array, zs):
         
         xx1 = self.inp.xi1
         xx2 = self.inp.xi2
@@ -145,7 +148,7 @@ class ray_tracer():
         sf2 = xx2*0.0
 
         for i in range(nlpl):
-            xj1,xj2 = self.rec_read_xj(alpha1_array,alpha2_array,zl_array,zs,i+1)
+            xj1,xj2 = self._rec_read_xj(alpha1_array,alpha2_array,zl_array,zs,i+1)
             #------------------
             alpha1_tmp = cf.call_inverse_cic(alpha1_array[i],0.0,0.0,xj1,xj2,dsi)
             af1 = af1 + alpha1_tmp
@@ -169,7 +172,7 @@ class ray_tracer():
         return af1, af2, kf0, sf1, sf2
 
 
-    def rec_read_xj(self, alpha1_array,alpha2_array,zln,zs,n):
+    def _rec_read_xj(self, alpha1_array,alpha2_array,zln,zs,n):
 
         xx1 = self.inp.xi1
         xx2 = self.inp.xi2
@@ -226,14 +229,14 @@ class ray_tracer():
                 xjm22 = np.fromfile(self.inp.xj_path+str(n-3)+"_xj2.bin", dtype='double').reshape((nx1, nx2))
             except:
                 print("No {} files, recalculate XJ...".format(self.inp.xj_path+str(n-3)+"_xj1.bin"))
-                xjm21,xjm22 = self.rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-2)
+                xjm21,xjm22 = self._rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-2)
 
             try:
                 xjm11 = np.fromfile(self.inp.xj_path+str(n-2)+"_xj1.bin", dtype='double').reshape((nx1, nx2))
                 xjm12 = np.fromfile(self.inp.xj_path+str(n-2)+"_xj2.bin", dtype='double').reshape((nx1, nx2))
             except:
                 print("No {} files, recalculate XJ...".format(self.inp.xj_path+str(n-2)+"_xj1.bin"))
-                xjm11,xjm12 = self.rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-1)
+                xjm11,xjm12 = self._rec_read_xj(alpha1_array,alpha2_array,zln,zs,n-1)
 
             aijm11 = cf.call_inverse_cic(alpha1_array[n-2],0.0,0.0,xjm11,xjm12,dsi)
             aijm12 = cf.call_inverse_cic(alpha2_array[n-2],0.0,0.0,xjm11,xjm12,dsi)

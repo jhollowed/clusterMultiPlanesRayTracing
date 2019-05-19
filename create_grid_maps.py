@@ -25,7 +25,7 @@ class cd:
 
 class grid_map_generator():
 
-    def __init__(self, inp, stdfe_exe = '/home/hollowed/repos/SDTFE/bin/dtfe'):
+    def __init__(self, inp, stdfe_exe = '/home/hollowed/repos/SDTFE/bin/dtfe', overwrite=False):
         '''
         This class implements functions for constructing lensing grid maps on a particle lightcone cutout.
         After initializing with a `halo_inputs` object, the LOS particle data should be read with 
@@ -37,12 +37,15 @@ class grid_map_generator():
             A class instance of halo_inputs giving run parameters and read/write directories
         sdtfe_exe : string
             Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build
+        overwrite : bool
+            Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         '''
 
         self.dtfe_exe = stdfe_exe
         self.inp = inp
+        mode = 'w' if overwrite else 'a'
         self.out_file = h5py.File('{}/{}_{}_gmaps.hdf5'.format(
-                                  self.inp.outputs_path, self.inp.halo_id, self.inp.zs0), 'w')
+                                  self.inp.outputs_path, self.inp.halo_id, self.inp.zs0), mode)
         self.nslices = self.inp.num_lens_planes
         self.pdir = self.inp.input_prtcls_dir
         
@@ -83,7 +86,7 @@ class grid_map_generator():
                           np.fromfile('{0}/STEPCutout{1}/phi.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
 
     
-    def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs = False):
+    def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity. Note: the output files will be closed after this function 
@@ -101,7 +104,7 @@ class grid_map_generator():
         output_sdens_tiffs : boolean or float
             Whether or not to output tiff images of the DTFE result. Can also be a `float`, in which
             case tiff images will be generated for all halos above that value in log(M), e.g. if
-            output_sdens_tiffs = 15, then output images for all lens planes of cutouts for which the
+            output_sdens_tiffs = 15.0, then output images for all lens planes of cutouts for which the
             halo's mass is M >= 10^14 M_sun/h. Defaults to False.
         '''
         
@@ -112,9 +115,15 @@ class grid_map_generator():
             
             # get redshift bounds of lens plane
             lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
-
-            # compute lensing quantities on the grid from ~infinity (zs0) 
-            output_ar = self.grids_at_lens_plane(lens_plane_bounds, i, skip_sdens = skip_sdens)
+    
+            # set image output flag
+            if(isinstance(output_dens_tiffs, float)):
+                if( np.log10(self.inp.halo_mass) >= output_dens_tiffs): output_dens_tiffs = True
+            elif(not isinstance(output_dens_tiffs, bool)):
+                raise Exception('`output_dens_tiffs must either be a float or a bool`')
+            
+            # compute lensing quantities on the grid from ~infinity (zs0)
+            output_ar = self._grids_at_lens_plane(lens_plane_bounds, i, skip_sdens, output_dens_tiffs)
 
             # write output to HDF5 
             if output_ar == 1:
@@ -140,7 +149,7 @@ class grid_map_generator():
         self.out_file.close()
 
 
-    def grids_at_lens_plane(self, lens_plane_bounds, idx, skip_sdens=False):
+    def _grids_at_lens_plane(self, lens_plane_bounds, idx, skip_sdens=False, image_out=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity for the lens plane defined as the projected volume between
@@ -254,12 +263,16 @@ class grid_map_generator():
             
             # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
             #               field_width(arcsec) field_depth(Mpc/h) particle_mass mc_box_width 
-            #               n_mc_samples sample_factor ]
+            #               n_mc_samples sample_factor image_out? ]
+            
+            if(image_out == True): image_out = 1
+            else: image_out = 0
+
             dtfe_args = ["%s"%s for s in 
                          [self.dtfe_exe,
                           dtfe_file, len(mpin), ncc, 0, 0, 0, 
                           bsz_arc*0.95, np.max(x3in)-np.min(x3in), self.inp.mpp, 
-                          bsz_arc/ncc/4, 4, 1.0
+                          bsz_arc/ncc/4, 4, 1.0, image_out
                          ]
                         ]
             print(dtfe_args)

@@ -28,7 +28,7 @@ def Nz_Chang2014(z, case='conservative', sys='masking'):
 
 class lensing_mock_generator():
 
-    def __init__(self, inp):
+    def __init__(self, inp, overwrite=False):
         '''
         This class implements functions for creating lensing mocks via interpolation on ray-traced maps.
         After initializing with a `halo_inputs` object, the raytraced lensing maps computed from the lens 
@@ -39,6 +39,8 @@ class lensing_mock_generator():
         ----------
         inp : halo_inputs instance
             A class instance of halo_inputs giving run parameters and read/write directories
+        overwrite : bool
+            Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         '''
 
         self.inp = inp
@@ -48,8 +50,9 @@ class lensing_mock_generator():
         self.xx2 = self.inp.xi2
         
         # point to raytrace result and define output file
+        mode = 'w' if overwrite else 'a'
         self.raytrace_path = glob.glob('{}/{}_raytraced_maps.hdf5'.format(self.inp.outputs_path, self.inp.halo_id))
-        self.out_file = h5py.File('{}/{}_lensing_mocks.hdf5'.format(self.inp.outputs_path, self.inp.halo_id), 'w')
+        self.out_file = h5py.File('{}/{}_lensing_mocks.hdf5'.format(self.inp.outputs_path, self.inp.halo_id), mode)
 
         self.raytrace_file = None
         self.source_planes = None
