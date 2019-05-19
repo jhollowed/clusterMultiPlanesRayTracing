@@ -35,11 +35,12 @@ class inputs():
         self.snapid_redshift = 1 / np.linspace(1/(z_init+1), 1, sim_steps)[self.snapid_list] - 1
 
         # trim to depth given by max_depth
-        depth_mask = self.snapid_redshift <= max_depth
-        self.snapid_list = self.snapid_list[depth_mask]
-        self.snapid_redshift = self.snapid_redshift[depth_mask]
-        self.max_redshift = max(self.snapid_redshift)
         comv = cosmo.comoving_distance
+        if(max_depth is not None):
+            depth_mask = self.snapid_redshift <= max_depth
+            self.snapid_list = self.snapid_list[depth_mask]
+            self.snapid_redshift = self.snapid_redshift[depth_mask]
+        self.max_redshift = max(self.snapid_redshift)
         self.depth_mpc = comv(self.max_redshift).value
 
         #--------------------------------------------------------------------
