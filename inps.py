@@ -26,6 +26,7 @@ class inputs():
         self.mean_lens_width = mean_lens_width
         self.halo_shell = int(self.halo_props['halo_lc_shell'])
         self.halo_redshift = float(self.halo_props['halo_redshift'])
+        self.halo_mass = int(self.halo_props['sod_halo_mass'])
         self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree
         self.bsz_mpc = float(self.halo_props['boxRadius_Mpc']*2) # Mpc
         self.snapid_list = [int(s.split('Cutout')[-1]) for s in 

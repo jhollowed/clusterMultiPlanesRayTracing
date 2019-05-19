@@ -31,7 +31,7 @@ class ray_tracer():
         self.z_lens_planes_all = None
         self. out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(
                                     self.inp.outputs_path, self.inp.halo_id), 'w')
-        print('created out file {}'.format(out_file.filename))
+        print('created out file {}'.format(self.out_file.filename))
    
 
     def read_grid_maps_zs0(self):
@@ -47,17 +47,8 @@ class ray_tracer():
         lens_planes = np.array(list(gmaps_file.keys()))
         lens_zs = np.squeeze([gmaps_file[plane]['zl'].value for plane in lens_planes])
         idx = np.argsort(lens_zs)
-        self.z_lens_planes_all = lens_zs[idx]
+        self.z_lens_planes = lens_zs[idx]
         lens_planes = lens_planes[idx]
-
-        if(max_planes is not None):
-            halo_plane_idx = np.where(lens_planes == str(self.inp.halo_shell))[0][0]
-            fg_planes = min([max_planes, halo_plane_idx])
-            bg_planes = min([max_planes, (len(lens_planes)-halo_plane_idx)-1])
-            lens_planes = lens_planes[ halo_plane_idx-fg_planes : halo_plane_idx+bg_planes ]
-            self.z_lens_planes = self.z_lens_planes_all[ halo_plane_idx-fg_planes : halo_plane_idx+bg_planes ]
-        else:
-            self.z_lens_planes = self.z_lens_planes_all
         
         self.kappa_zs0 = np.array([gmaps_file[plane]['kappa0'].value for plane in lens_planes])
         self.alpha1_zs0 = np.array([gmaps_file[plane]['alpha1'].value for plane in lens_planes])
