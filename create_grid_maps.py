@@ -30,7 +30,7 @@ class cd:
 
 class grid_map_generator():
 
-    def __init__(self, inp, stdfe_exe = '/home/hollowed/repos/SDTFE/bin/dtfe', overwrite=False, stdout=True):
+    def __init__(self, inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', overwrite=False, stdout=True):
         '''
         This class implements functions for constructing lensing grid maps on a particle lightcone cutout.
         After initializing with a `halo_inputs` object, the LOS particle data should be read with 
@@ -41,7 +41,8 @@ class grid_map_generator():
         inp : halo_inputs instance
             A class instance of halo_inputs giving run parameters and read/write directories
         sdtfe_exe : string
-            Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build
+            Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build. 
+            Change `...SDTFE/cooley/dtfe` to `...SDTFE/mira/dtfe` if running in a BG/Q system.
         overwrite : bool
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         stdout : bool
@@ -56,7 +57,7 @@ class grid_map_generator():
             self.print = printflush
             self.c_out = None
 
-        self.dtfe_exe = stdfe_exe
+        self.dtfe_exe = sdtfe_exe
         self.inp = inp
         mode = 'w' if overwrite else 'a'
         self.out_file = h5py.File('{}/{}_{}_gmaps.hdf5'.format(
@@ -222,7 +223,7 @@ class grid_map_generator():
             zl_median = np.median(zp)
              
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
-        noskip = True
+        noskip = False
         if(skip_sdens == True and noskip == False): 
             try:
                 # read in density result

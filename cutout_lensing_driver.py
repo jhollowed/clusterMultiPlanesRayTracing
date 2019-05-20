@@ -9,15 +9,13 @@ import create_grid_maps as gm
 import raytrace_them_all  as rt
 import make_lensing_mocks as mock
 
-#def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_full', 
-#                      out_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_raytracing'):
-def parallel_raytrace(cutout_dir = '/home/hollowed/repos/clusterMultiPlanesRayTracing/data/lenses/prtcls', 
-                      out_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_raytracing'):
+def parallel_raytrace(cutout_dir = './data/lenses/prtcls', 
+                      out_dir = './output'):
     
     # toggle this on to test communication without actually creating lensing maps
     dry_run = False
     # toggle this on to rebuild lensing maps even if files already exist
-    overwrite = True
+    overwrite = False
 
     # -----------------------------------------
     # ---------- define communicator ----------
@@ -34,7 +32,6 @@ def parallel_raytrace(cutout_dir = '/home/hollowed/repos/clusterMultiPlanesRayTr
     # ---------- find all cutouts ----------
     #all_cutouts = np.array(glob.glob('{}/zbin*/halo*'.format(cutout_dir)))
     all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
-    all_cutouts = all_cutouts[0:3]
   
 
     # ---------------------------------------------------
@@ -70,19 +67,21 @@ def parallel_raytrace(cutout_dir = '/home/hollowed/repos/clusterMultiPlanesRayTr
         
         cutout = this_rank_halos[i]
         output = '{}/{}'.format(out_dir, cutout.split('/')[-1])
-        inp = inps.inputs(cutout, output, mean_lens_width = 70)
+        inp = inps.inputs(cutout, output, mean_lens_width = 85)
         
         if(rank==0): print('\n\n---------- working on halo {}/{} ----------'.format(i+1, len(this_rank_halos)))
         
-        if( 0 and (len(glob.glob('{}/*gmaps.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
+        #if( (len(glob.glob('{}/*gmaps.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
+        if( (len(glob.glob('{}/*mock*.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
             if(rank==0): 
                 print('\n--- gridding ---')
                 sys.stdout.flush()
-            gm_gen = gm.grid_map_generator(inp, overwrite=True, stdout=(rank==0))
+            gm_gen = gm.grid_map_generator(inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', 
+                                           overwrite=True, stdout=(rank==0))
             gm_gen.read_cutout_particles()
             gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=14.7)
 
-        if( 0 and (len(glob.glob('{}/*ray*.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
+        if( (len(glob.glob('{}/*ray*.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
             if(rank==0): 
                 print('\n--- raytracing--- ')
                 sys.stdout.flush()
@@ -108,4 +107,5 @@ def parallel_raytrace(cutout_dir = '/home/hollowed/repos/clusterMultiPlanesRayTr
           rank, len(this_rank_halos), end-start))
 
 
-if __name__ == '__main__': parallel_raytrace()
+if __name__ == '__main__':
+    parallel_raytrace(sys.argv[1], sys.argv[2])
