@@ -70,6 +70,7 @@ class inputs():
         self.zs0 = 10.0
         self.mpp = 1148276137.0888093*1.6 # solMass/h
         self.mpp = self.mpp / cosmo.h
+        self.mpp = self.mpp*10
         self.npad = 5
     
         # gen grid points

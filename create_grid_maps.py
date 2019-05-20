@@ -222,7 +222,7 @@ class grid_map_generator():
             zl_median = np.median(zp)
              
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
-        noskip = False
+        noskip = True
         if(skip_sdens == True and noskip == False): 
             try:
                 # read in density result

@@ -9,7 +9,9 @@ import create_grid_maps as gm
 import raytrace_them_all  as rt
 import make_lensing_mocks as mock
 
-def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_full', 
+#def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_full', 
+#                      out_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_raytracing'):
+def parallel_raytrace(cutout_dir = '/home/hollowed/repos/clusterMultiPlanesRayTracing/data/lenses/prtcls', 
                       out_dir = '/projects/DarkUniverse_esp/jphollowed/outerRim/cutouts_raytracing'):
     
     # toggle this on to test communication without actually creating lensing maps
@@ -30,7 +32,8 @@ def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerR
 
     # --------------------------------------
     # ---------- find all cutouts ----------
-    all_cutouts = np.array(glob.glob('{}/zbin*/halo*'.format(cutout_dir)))
+    #all_cutouts = np.array(glob.glob('{}/zbin*/halo*'.format(cutout_dir)))
+    all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
     all_cutouts = all_cutouts[0:3]
   
 
@@ -67,11 +70,11 @@ def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerR
         
         cutout = this_rank_halos[i]
         output = '{}/{}'.format(out_dir, cutout.split('/')[-1])
-        inp = inps.inputs(cutout, output, mean_lens_width = 70, max_depth=0.15)
+        inp = inps.inputs(cutout, output, mean_lens_width = 70)
         
         if(rank==0): print('\n\n---------- working on halo {}/{} ----------'.format(i+1, len(this_rank_halos)))
         
-        if( (len(glob.glob('{}/*gmaps.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
+        if( 0 and (len(glob.glob('{}/*gmaps.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
             if(rank==0): 
                 print('\n--- gridding ---')
                 sys.stdout.flush()
@@ -79,7 +82,7 @@ def parallel_raytrace(cutout_dir = '/projects/DarkUniverse_esp/jphollowed/outerR
             gm_gen.read_cutout_particles()
             gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=14.7)
 
-        if( (len(glob.glob('{}/*ray*.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
+        if( 0 and (len(glob.glob('{}/*ray*.hdf5'.format(inp.outputs_path))) == 0 or overwrite) and not dry_run):
             if(rank==0): 
                 print('\n--- raytracing--- ')
                 sys.stdout.flush()

@@ -190,7 +190,7 @@ class lensing_mock_generator():
             
             # Save Outputs
             self.out_file.create_group(zkey)
-            self.out_file[zkey]['zs'] = zsp.astype('float32')
+            self.out_file[zkey]['zs'] = np.atleast_1d(zsp).astype('float32')
             self.out_file[zkey]['xr1'] = xr1_array.astype('float32')
             self.out_file[zkey]['xr2'] = xr2_array.astype('float32')
             self.out_file[zkey]['kr0'] = kr0_array.astype('float32')
