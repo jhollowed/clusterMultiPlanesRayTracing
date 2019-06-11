@@ -65,14 +65,18 @@ class grid_map_generator():
         self.print('created out file {}'.format(self.out_file.filename))
         self.nslices = self.inp.num_lens_planes
         self.pdir = self.inp.input_prtcls_dir
+        self.pfx = glob.glob('{}/*Cutout*'.format(self.pdir))[0].split('Cutout')[0].split('/')[-1]
         
         self.zp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.zp_los = np.hstack([self.zp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/redshift.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/redshift.{1}.bin'.format(
+                                      self.pdir,snapid,self.pfx), dtype = "f")])
         self.xxp_los = None
         self.yyp_los = None
         self.zzp_los = None
+        self.tp_los = None
+        self.pp_los = None
 
 
     def read_cutout_particles(self):
@@ -80,27 +84,32 @@ class grid_map_generator():
         Read in the particle positions and redshifts given in the cutout directory pointed to by the 
         halo input object, `self.inp`.
         '''
-        
+       
         self.xxp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.xxp_los = np.hstack([self.xxp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/x.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/x.{1}.bin'.format(
+                                      self.pdir, snapid, self.pfx), dtype = "f")])
         self.yyp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.yyp_los = np.hstack([self.yyp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/y.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/y.{1}.bin'.format(
+                                      self.pdir, snapid, self.pfx), dtype = "f")])
         self.zzp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.zzp_los = np.hstack([self.zzp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/z.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/z.{1}.bin'.format(
+                                      self.pdir, snapid, self.pfx), dtype = "f")])
         self.tp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.tp_los = np.hstack([self.tp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/theta.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/theta.{1}.bin'.format(
+                                      self.pdir, snapid, self.pfx), dtype = "f")])
         self.pp_los = np.array([])
         for snapid in self.inp.snapid_list:
             self.pp_los = np.hstack([self.pp_los, 
-                          np.fromfile('{0}/STEPCutout{1}/phi.{1}.bin'.format(self.pdir,snapid), dtype = "f")])
+                          np.fromfile('{0}/{2}Cutout{1}/phi.{1}.bin'.format(
+                                      self.pdir, snapid, self.pfx), dtype = "f")])
 
     
     def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs=False):
@@ -129,6 +138,9 @@ class grid_map_generator():
             assert self.zp_los is not None, "read_cutout_particles() must be called before DTFE"
 
         for i in range(self.nslices):
+    
+            #RRRRRRR
+            if(i != 21): continue
             
             # get redshift bounds of lens plane
             lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
@@ -232,7 +244,10 @@ class grid_map_generator():
             except FileNotFoundError: 
                 self.print('Cant skip density calculation for plane {}; doesnt exist'.format(idx))
                 noskip = True
-        
+       
+        #RRRRRRR
+        noskip = True
+
         if(skip_sdens == False or noskip == True):
 
             self.print('extrcting lens plane from LOS')
@@ -264,6 +279,8 @@ class grid_map_generator():
             # Calculate convergence maps
             #
             
+            ''' 
+
             # ------ do density estiamtion via system call to SDTFE exe ------
      
             # x, y, z in column major
@@ -295,10 +312,14 @@ class grid_map_generator():
             
             # read in result
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
+            '''
         
         
         self.print('computing convergence')
         sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
+
+        sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
+        
         kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
          
         #---------------------------------------

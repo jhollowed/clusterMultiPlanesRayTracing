@@ -106,6 +106,7 @@ class ray_tracer():
         # loop over source redshifts
         for i in range(len(ZS)):
             
+
             # Rescale Lens Data (zs0->zs)
             zs = ZS[i]
             zl_array = self.zmedian_lens_planes[self.zmedian_lens_planes<=(zs)]

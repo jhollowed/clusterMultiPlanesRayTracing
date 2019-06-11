@@ -254,9 +254,15 @@ class lensing_mock_generator():
         return 0
 
 
-    def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa):
+    def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa, zs=None, log=True):
+        
         g1 = shear1
         g2 = shear2
+        if(log): 
+            kappa = np.log10(kappa)
+            kappa[np.isnan(kappa)] = 0
+        mink = min(np.ravel(kappa)[np.ravel(kappa) != 0])
+        
         #---------------------------------------------------------------------
         pl.figure(figsize=(10,10),dpi=80)
         pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.viridis,origin='higher',
@@ -265,26 +271,24 @@ class lensing_mock_generator():
                           -self.inp.bsz_arc/2.0,
                            self.inp.bsz_arc/2.0,])
 
-        scale_shear = 1000
+        scale_shear = 100
+        ampli = np.sqrt(g1**2 + g2**2)
+        alph = np.arctan2(g2, g1) / 2.0
+        st_x = x1 - ampli * np.cos(alph) * scale_shear
+        ed_x = x1 + ampli * np.cos(alph) * scale_shear
+        st_y = x2 - ampli * np.sin(alph) * scale_shear
+        ed_y = x2 + ampli * np.sin(alph) * scale_shear
+
+        if(zs is not None):
+            plt_alpha = np.min(np.array([np.ones(len(zs)), 1-( (zs - self.inp.halo_redshift)/3)]).T, axis=1)
+        else:
+            plt_alpha = np.ones(len(g1))
+
+        print('plotting')
+        for i in range(len(g1)):    
+            a, c = plt_alpha[i], [1, plt_alpha[i], plt_alpha[i]] 
+            pl.plot([st_x[i],ed_x[i]],[st_y[i],ed_y[i]],'w-',linewidth=1.0, alpha=a)
         
-        for i in range(len(g1)):
-            gt1 = g1[i]
-            gt2 = g2[i]
-
-            ampli = np.sqrt(gt1*gt1+gt2*gt2)
-            alph = np.arctan2(gt2,gt1)/2.0
-
-            st_x = x1[i]-ampli*np.cos(alph)*scale_shear
-            md_x = x1[i]
-            ed_x = x1[i]+ampli*np.cos(alph)*scale_shear
-
-            st_y = x2[i]-ampli*np.sin(alph)*scale_shear
-            md_y = x2[i]
-            ed_y = x2[i]+ampli*np.sin(alph)*scale_shear
-
-            pl.plot([md_x,ed_x],[md_y,ed_y],'w-',linewidth=1.0)
-            pl.plot([md_x,st_x],[md_y,st_y],'w-',linewidth=1.0)
-
         pl.xlim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
         pl.ylim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
         pl.show()
