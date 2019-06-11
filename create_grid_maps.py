@@ -139,9 +139,6 @@ class grid_map_generator():
 
         for i in range(self.nslices):
     
-            #RRRRRRR
-            if(i != 21): continue
-            
             # get redshift bounds of lens plane
             lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
             if lens_plane_bounds[0] < self.inp.halo_redshift and \
@@ -241,13 +238,11 @@ class grid_map_generator():
                 # read in density result
                 self.print('reading density')
                 sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
+                sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
             except FileNotFoundError: 
                 self.print('Cant skip density calculation for plane {}; doesnt exist'.format(idx))
                 noskip = True
        
-        #RRRRRRR
-        noskip = True
-
         if(skip_sdens == False or noskip == True):
 
             self.print('extrcting lens plane from LOS')
@@ -279,8 +274,6 @@ class grid_map_generator():
             # Calculate convergence maps
             #
             
-            ''' 
-
             # ------ do density estiamtion via system call to SDTFE exe ------
      
             # x, y, z in column major
@@ -312,14 +305,12 @@ class grid_map_generator():
             
             # read in result
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
-            '''
+            sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
+             
+        # uncomment line below to use SPH rather than DTFE
+        #sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
         
-        
-        self.print('computing convergence')
-        sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
-
-        sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
-        
+        self.print('computing convergence') 
         kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
          
         #---------------------------------------
