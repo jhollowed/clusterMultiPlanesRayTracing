@@ -14,20 +14,24 @@ G = 4.3011790220362e-09 # Mpc/h (Msun/h)^-1 (km/s)^2
 apr = 206264.80624709636 #arcsec/radian
 
 def Dc(z):
+    # return the comoving distance to redshift z in Mpc/h
     res = cosmo.comoving_distance(z).value*cosmo.h
     return res
 
 def Dc2(z1,z2):
+    # return the comoving distance between redshifts z1 and z2 in Mpc/h
     Dcz1 = (cosmo.comoving_distance(z1).value*cosmo.h)
     Dcz2 = (cosmo.comoving_distance(z2).value*cosmo.h)
     res = (Dcz2-Dcz1+1e-8)
     return res
 
 def Da(z):
+    # return the proper distance to redshift z in Mpc/h
     res = cosmo.comoving_distance(z).value*cosmo.h/(1+z)
     return res
 
 def Da2(z1,z2):
+    # return the proper distance to redshift z in Mpc/h
     Dcz1 = (cosmo.comoving_distance(z1).value*cosmo.h)
     Dcz2 = (cosmo.comoving_distance(z2).value*cosmo.h)
     res = (Dcz2-Dcz1+1e-8)/(1+z2)
@@ -429,6 +433,9 @@ def cart2pol3d(x, y, z):
     return r_pol, theta_pol, phi_pol
 
 def sigma_crit(z1, z2):
+    # return the critical surface density for the lensing geometry of a lens-source pair
+    # at redshifts z1 and z2, respectively, in proper (M_sun/h) / (Mpc/h)**2
+
     # sigma_crit = cf.vc*cf.vc/(4.0*np.pi*cf.G)*(1+zl)*cf.Dc(zs)/(cf.Dc(zl)*cf.Dc2(zl,zs))
     res = vc*vc/(4.0*np.pi*G)*Da(z2)/(Da(z1)*Da2(z1,z2))
     return res

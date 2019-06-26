@@ -254,9 +254,9 @@ class grid_map_generator():
             self.print('{} particles'.format(len(xp)))
            
             # compute fov-centric coordinates:
-            # x3 in Mpc/h along the LOS
-            # x1 azimuthal angular coord in Mpc/h
-            # x2 coaltitude angular coord in Mpc/h
+            # x3 in comoving Mpc/h along the LOS
+            # x1 azimuthal projected distance in comoving Mpc/h
+            # x2 coaltitude projected distance in comoving Mpc/h
 
             xo3 = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
             xc3 = (np.max(xo3)+np.min(xo3))*0.5
@@ -283,7 +283,7 @@ class grid_map_generator():
             if(image_out == True): image_out = 1
             else: image_out = 0
 
-            plane_width = 0.95 * ((np.tan(( bsz_arc/cf.apr/2)) * xc3) * 2)
+            plane_width = 0.95 * (np.tan(bsz_arc/cf.apr/2) * xc3 * 2)
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
             
@@ -304,12 +304,21 @@ class grid_map_generator():
                 subprocess.run(dtfe_args, stdout=self.c_out)
             
             # read in result
+            # sdens_cmpch is comoving surface density of this lens plane in (M_sun/h) / (Mpc/h)**2
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
             sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
+
+            # make sure we can recover particle mass
+            inferred_mpp = np.sum(sdens_cmpch) * plane_width**2 / len(x1in)
+            fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
+            assert fdiff_mpp <= 1e-6, "particle mass not recoverable from density estimation!"
              
         # uncomment line below to use SPH rather than DTFE
         #sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
         
+        # compute convergence...
+        # 1/a^2 in sdens_cmpch scales to proper area
+        # sigma_crit in proper (M_sun/h) / (Mpc/h)**2
         self.print('computing convergence') 
         kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
          
