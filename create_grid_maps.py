@@ -222,7 +222,7 @@ class grid_map_generator():
         ncc = self.inp.nnn
         bsz_mpc = self.inp.bsz_mpc
         bsz_arc = self.inp.bsz_arc
-        
+ 
         # check has at least minimum particles, else return empty plane
         if len(zp) < 10:
             zl_median = np.sum(lens_plane_bounds)/2
@@ -233,6 +233,13 @@ class grid_map_generator():
              
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
+       
+        #if(np.min(zp) < self.inp.halo_props['halo_redshift'] and 
+        #   self.inp.halo_props['halo_redshift'] < np.max(zp)):
+        #    noskip=True
+        #else:
+        #    noskip=False
+        
         if(skip_sdens == True and noskip == False): 
             try:
                 # read in density result
@@ -284,6 +291,8 @@ class grid_map_generator():
             else: image_out = 0
 
             plane_width = 0.95 * (np.tan(bsz_arc/cf.apr/2) * xc3 * 2)
+            #plane_width = 1.0 * (np.tan(bsz_arc/cf.apr/2) * xc3 * 2)
+
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
             
@@ -309,13 +318,21 @@ class grid_map_generator():
             sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
 
             # make sure we can recover particle mass
-            inferred_mpp = np.sum(sdens_cmpch) * plane_width**2 / len(x1in)
+            inferred_mpp = np.sum(sdens_cmpch * (plane_width/ncc)**2) / len(x1in)
             fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
-            assert fdiff_mpp <= 1e-6, "particle mass not recoverable from density estimation!"
+            #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
              
         # uncomment line below to use SPH rather than DTFE
         #sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
-        
+       
+        # subtract mean density from sdens_cmpch
+        rho_mean = cf.projected_rho_mean(lens_plane_bounds[0], lens_plane_bounds[1])
+        mean_diff = np.mean(sdens_cmpch) / rho_mean
+        sdens_cmpch -= rho_mean
+
+        self.print('Measured/theroy mean is {}'.format(mean_diff))
+
+
         # compute convergence...
         # 1/a^2 in sdens_cmpch scales to proper area
         # sigma_crit in proper (M_sun/h) / (Mpc/h)**2
