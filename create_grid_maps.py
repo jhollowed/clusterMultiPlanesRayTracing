@@ -112,6 +112,12 @@ class grid_map_generator():
                                       self.pdir, snapid, self.pfx), dtype = "f")])
 
     
+    def plot_planes():
+        pass
+        #lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
+        #plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
+
+
     def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
@@ -259,6 +265,7 @@ class grid_map_generator():
             tp = self.tp_los[plane_mask]
             pp = self.pp_los[plane_mask]
             self.print('{} particles'.format(len(xp)))
+
            
             # compute fov-centric coordinates:
             # x3 in comoving Mpc/h along the LOS

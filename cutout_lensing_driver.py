@@ -34,8 +34,8 @@ def parallel_raytrace(cutout_dir = './data/lenses/prtcls',
     # --------------------------------------
     # ---------- find all cutouts ----------
     #all_cutouts = np.array(glob.glob('{}/zbin*/halo*'.format(cutout_dir)))
-    #all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
-    all_cutouts = np.array(glob.glob('{}/halo_509232888346_0'.format(cutout_dir)))
+    all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
+    all_cutouts = np.array(glob.glob('{}/halo_244960324069_0'.format(cutout_dir)))
     if( rank==0 ):
         print('found {} total halos'.format(len(all_cutouts)))
   
@@ -85,7 +85,7 @@ def parallel_raytrace(cutout_dir = './data/lenses/prtcls',
             gm_gen = gm.grid_map_generator(inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', 
                                            overwrite=True, stdout=(rank==0))
             gm_gen.read_cutout_particles()
-            gm_gen.create_grid_maps_for_zs0(skip_sdens=False, output_dens_tiffs=14.7)
+            gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=14.7)
 
         if( (len(glob.glob('{}/*ray*.hdf5'.format(inp.outputs_path))) == 0 or overwrite_raytrace) and not dry_run):
             if(rank==0): 
