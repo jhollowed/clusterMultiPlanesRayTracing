@@ -147,6 +147,7 @@ class ray_tracer():
             self.out_file[zs_group]['shear1'] = sf1.astype('float32')
             self.out_file[zs_group]['shear2'] = sf2.astype('float32')
             
+            # debugging; remove this later
             self.out_file[zs_group]['kappa0_array'] = kappa0_array
             self.out_file[zs_group]['alpha1_array'] = alpha1_array
             self.out_file[zs_group]['alpha2_array'] = alpha2_array
