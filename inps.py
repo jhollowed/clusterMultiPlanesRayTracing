@@ -67,7 +67,7 @@ class inputs():
         self.dsx = self.bsz/self.nnn
         self.bsz_arc = self.bsz*3600.
         self.dsx_arc = self.dsx*3600.
-        self.zs0 = 1.1312076
+        self.zs0 = 10.0
         self.mpp = 1847949963.891378 # solMass/h
         self.mpp = self.mpp * 100 # uncomment for downsampled inputs
         self.npad = 5

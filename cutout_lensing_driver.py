@@ -34,7 +34,7 @@ def parallel_raytrace(cutout_dir = './data/lenses/prtcls',
     # --------------------------------------
     # ---------- find all cutouts ----------
     #all_cutouts = np.array(glob.glob('{}/zbin*/halo*'.format(cutout_dir)))
-    all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
+    #all_cutouts = np.array(glob.glob('{}/halo*'.format(cutout_dir)))
     all_cutouts = np.array(glob.glob('{}/halo_244960324069_0'.format(cutout_dir)))
     if( rank==0 ):
         print('found {} total halos'.format(len(all_cutouts)))
