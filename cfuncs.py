@@ -49,7 +49,7 @@ def projected_rho_mean(z1, z2):
     d1 = cosmo.comoving_distance(z1).value
     d2 = cosmo.comoving_distance(z2).value
 
-    return rho_mean_0 * (d2-d1) / cosmo.h**2
+    return rho_mean_0 * (d2-d1) / cosmo.h
     
 
 #---------------------------------------------------------------------------------

@@ -337,7 +337,7 @@ class grid_map_generator():
         mean_diff = np.mean(sdens_cmpch) / rho_mean
         sdens_cmpch -= rho_mean
 
-        self.print('Measured/theroy mean is {}'.format(mean_diff))
+        self.print('Measured/theory mean is {}'.format(mean_diff))
 
 
         # compute convergence...

@@ -72,7 +72,7 @@ class ray_tracer():
     
         # get higher redshift bound of each lens plane
         self.z_lens_planes = self.inp.lens_plane_edges[1:]
-        self.zmedian_lens_planes = lens_zs
+        self.zmedian_lens_planes = lens_zs[idx]
         assert len(self.z_lens_planes) == len(self.zmedian_lens_planes), ( 
                "mismatch between cutout and gmaps lens planes!")
    
