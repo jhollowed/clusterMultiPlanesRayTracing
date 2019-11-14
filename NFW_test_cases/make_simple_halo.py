@@ -82,15 +82,15 @@ class simple_halo:
         ----------
         N : int
             The number of particles to drawn
-        rfac: float, optional
+        rfrac: float, optional
             Multiplier of r200c which sets the maximum scale of the population
             (concentration will be scaled as well, as c=r200c/r_s). Defaults to 1
         """
        
         # the radial positions in comoving Mpc/h
         
-        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfac*self.c, 
-                                                          halo_radius = rfac*self.r200c)
+        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac*self.c, 
+                                                          halo_radius = rfrac*self.r200c)
         self.profile_particles = r
         self.mpp = self.m200c / N
          
@@ -191,5 +191,5 @@ class simple_halo:
 
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
-    hh.populate_halo(N=10000, rfrac=5)
-    hh.output_particles(vis_debug=False)
+    hh.populate_halo(N=10000, rfrac=10)
+    hh.output_particles(vis_debug=True)
