@@ -9,7 +9,7 @@ lib_path = '/home/hollowed/repos/clusterMultiPlanesRayTracing/lib/'
 class inputs():
  
     def __init__(self, halo_cutout_parent_dir, output_dir, max_depth = None, safe_zone=20.0, 
-                 mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7):
+                 mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7, mpp = 1847949963.891378): 
     
         #--------------------------------------------------------------------
         # input paths
@@ -33,6 +33,10 @@ class inputs():
         self.snapid_list = np.array([int(s.split('Cutout')[-1]) for s in 
                                      glob.glob('{}/*Cutout*'.format(self.input_prtcls_dir))])
         self.snapid_redshift = 1 / np.linspace(1/(z_init+1), 1, sim_steps)[self.snapid_list] - 1
+        if(mpp is not None): #solMass/h
+            self.mpp = mpp
+        else:
+            self.mpp = float(self.halo_props['mpp'])
 
         # trim to depth given by max_depth
         comv = cosmo.comoving_distance
@@ -53,7 +57,7 @@ class inputs():
         # remove any lens plane edge that is within {safe_zone}Mpc of the halo redshift
         bad_edges = []
         for i in range(len(self.lens_plane_edges)):
-            if( abs(comv(self.halo_redshift).value - comv(self.lens_plane_edges[i]).value) <= safe_zone):
+            if( abs(comv(self.halo_redshift).value-comv(self.lens_plane_edges[i]).value) <= safe_zone):
                 bad_edges.append(i)
         for i in bad_edges:
             self.lens_plane_edges = np.delete(self.lens_plane_edges, i)
@@ -68,8 +72,8 @@ class inputs():
         self.bsz_arc = self.bsz*3600.
         self.dsx_arc = self.dsx*3600.
         self.zs0 = 10.0
-        self.mpp = 1847949963.891378 # solMass/h
-        self.mpp = self.mpp * 100 # uncomment for downsampled inputs
+
+        #self.mpp = self.mpp * 100 # uncomment for downsampled inputs
         self.npad = 5
     
         # gen grid points
