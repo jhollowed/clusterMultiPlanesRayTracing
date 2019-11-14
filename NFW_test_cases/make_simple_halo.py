@@ -1,3 +1,4 @@
+import os
 import pdb
 import scipy
 import mass_conc
@@ -87,7 +88,6 @@ class simple_halo:
                                                           halo_radius = self.r200c)
         self.profile_particles = r
         self.mpp = self.m200c / N
-        print('mpp is {}'.format(self.mpp))
          
         
     def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False):
@@ -105,6 +105,10 @@ class simple_halo:
         vis_debug : bool
             If True, display a 3d plot of the particles to be output for visual inspection
         """
+       
+        output_dir = '{}/Cutout{}'.format(output_dir, self.shell)
+        if not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
 
         r = self.profile_particles
         phi = np.random.uniform(low=0, high=np.pi*2, size = len(r))
@@ -126,23 +130,28 @@ class simple_halo:
         redshift = invfunc(x/self.cosmo.h)
 
         if(vis_debug):
-            f = plt.figure()
-            ax = f.add_subplot(projection='3d')
-            ax.scatter(x, y, z, c='k', alpha=0.5)
+            f = plt.figure(figsize=(12,6))
+            ax = f.add_subplot(121, projection='3d')
+            ax2 = f.add_subplot(122)
+
+            ax.scatter(x, y, z, c='k', alpha=0.25)
             ax.set_xlabel(r'$x\>[Mpc/h]$')
             ax.set_ylabel(r'$y\>[Mpc/h]$')
             ax.set_zlabel(r'$z\>[Mpc/h]$')
+
+            ax2.scatter(theta, phi, c='k', alpha=0.25)
+            ax.set_xlabel(r'$\theta\>[Mpc/h]$')
+            ax.set_ylabel(r'$\phi\>[Mpc/h]$')
             plt.show()
-            
 
         # write out all to binary
-        x.astype('f').tofile('{}/x.bin'.format(output_dir))
-        y.astype('f').tofile('{}/y.bin'.format(output_dir))
-        z.astype('f').tofile('{}/z.bin'.format(output_dir))
-        theta.astype('f').tofile('{}/theta.bin'.format(output_dir))
-        phi.astype('f').tofile('{}/phi.bin'.format(output_dir))
-        redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
-        self._write_prop_file(output_dir=output_dir)
+        x.astype('f').tofile('{}/x.{}.bin'.format(output_dir, self.shell))
+        y.astype('f').tofile('{}/y.{}.bin'.format(output_dir, self.shell))
+        z.astype('f').tofile('{}/z.{}.bin'.format(output_dir, self.shell))
+        theta.astype('f').tofile('{}/theta.{}.bin'.format(output_dir, self.shell))
+        phi.astype('f').tofile('{}/phi.{}.bin'.format(output_dir, self.shell))
+        redshift.astype('f').tofile('{}/redshift.{}.bin'.format(output_dir, self.shell))
+        self._write_prop_file(output_dir)
 
 
     def _write_prop_file(self, output_dir='./nfw_particle_realization'):
@@ -164,8 +173,9 @@ class simple_halo:
                'boxRadius_Mpc, boxRadius_arcsec, mpp'
         props = np.array([self.redshift, self.shell, self.m200c, self.r200c, self.c, 
                           0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
-        np.savetxt('{}/properties.csv'.format(output_dir), [props], fmt='%.6f', delimiter=',',
-                   header=cols)
+        np.savetxt('{}/../properties.csv'.format(output_dir), [props], 
+                   fmt='%.6f,%i,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 
+                   delimiter=',',header=cols)
         
 
 
@@ -173,4 +183,4 @@ class simple_halo:
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
     hh.populate_halo(N=10000)
-    hh.output_particles(vis_debug=False)
+    hh.output_particles(vis_debug=True)

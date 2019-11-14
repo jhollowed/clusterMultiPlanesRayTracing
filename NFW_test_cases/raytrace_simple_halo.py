@@ -1,11 +1,14 @@
+import os
 import sys
 import pdb
-import inps
 import time
 import glob
 import h5py as h
 import numpy as np
 from mpi4py import MPI
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import inps
 import create_grid_maps as gm
 import raytrace_them_all  as rt
 import make_lensing_mocks as mk
@@ -14,20 +17,23 @@ def halo_raytrace(cutout_dir = './nfw_particle_realization',
                   out_dir = './raytrace_output'):
     
         # crate inputs instance
+        print('reading inputs...')
         inp = inps.inputs(cutout_dir, out_dir, mean_lens_width = 70, mpp = None)        
        
         # make grid maps
+        print('making grid maps...')
         gm_gen = gm.grid_map_generator(inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', 
-                                       overwrite=True, stdout=(rank==0))
+                                       overwrite=True)
         gm_gen.read_cutout_particles()
-        gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=14.7)
-
-        # 
-        rt_gen = rt.ray_tracer(inp, overwrite=True, stdout=(rank==0))
+        gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=True)
+ 
+        print('raytracing...')
+        rt_gen = rt.ray_tracer(inp, overwrite=True)
         rt_gen.read_grid_maps_zs0()
         rt_gen.raytrace_grid_maps_for_zs()
 
-        mock_gen = mk.lensing_mock_generator(inp, overwrite=True, stdout=(rank==0))
+        print('making mocks...')
+        mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
         mock_gen.read_raytrace_planes()
         mock_gen.make_lensing_mocks(vis_shears = False)
 
@@ -111,4 +117,4 @@ def vis_outputs(cutout_dir = './data/lenses/prtcls', lensing_dir = './output',
 
 
 if __name__ == '__main__':
-    parallel_raytrace(sys.argv[1], sys.argv[2])
+    halo_raytrace()
