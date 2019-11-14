@@ -5,7 +5,7 @@ import time
 import glob
 import h5py as h
 import numpy as np
-from mpi4py import MPI
+#from mpi4py import MPI
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import inps
@@ -51,8 +51,7 @@ def vis_outputs(cutout_dir = os.path.abspath('./nfw_particle_realization'),
     raytrace_highz = sorted(list(raytrace.keys()), key=lambda s: int(s.split('plane')[-1]))[-1]
     gmaps_halo = sorted(list(gmaps.keys()))[0]
 
-    mock_gen = mk.lensing_mock_generator(inp, overwrite=False, stdout=True)
-    mock = mock_gen.out_file
+    mock = glob.glob('{}/*mock*hdf5'.format(lensing_dir))[0]
     zgroups = list(mock.keys())
 
     zs, x1, x2, s1, s2, k0 = [], [], [], [], [], []        
@@ -76,8 +75,48 @@ def vis_outputs(cutout_dir = os.path.abspath('./nfw_particle_realization'),
     raytrace_k0 = raytrace[raytrace_highz]['kappa0'][:]
     gmaps_k0 = gmaps[gmaps_halo]['kappa0'][:]
     
-    mock_gen.shear_vis_mocks(x1, x2, s1, s2, gmaps_k0, zs=zs, log=True)
+    shear_vis_mocks(x1, x2, s1, s2, gmaps_k0, zs=zs, log=True)
 
+
+def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa, zs=None, log=True):
+    
+    g1 = shear1
+    g2 = shear2
+    if(log): 
+        kappa = np.log10(kappa)
+        kappa[np.isnan(kappa)] = 0
+    mink = min(np.ravel(kappa)[np.ravel(kappa) != 0])
+    
+    #---------------------------------------------------------------------
+    pl.figure(figsize=(10,10),dpi=80)
+    pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.viridis,origin='higher',
+              extent=[-self.inp.bsz_arc/2.0,
+                       self.inp.bsz_arc/2.0,
+                      -self.inp.bsz_arc/2.0,
+                       self.inp.bsz_arc/2.0,])
+
+    scale_shear = 100
+    ampli = np.sqrt(g1**2 + g2**2)
+    alph = np.arctan2(g2, g1) / 2.0
+    st_x = x1 - ampli * np.cos(alph) * scale_shear
+    ed_x = x1 + ampli * np.cos(alph) * scale_shear
+    st_y = x2 - ampli * np.sin(alph) * scale_shear
+    ed_y = x2 + ampli * np.sin(alph) * scale_shear
+
+    if(zs is not None):
+        plt_alpha = np.min(np.array([np.ones(len(zs)), 1-( (zs - self.inp.halo_redshift)/3)]).T, axis=1)
+    else:
+        plt_alpha = np.ones(len(g1))
+
+    print('plotting')
+    for i in range(len(g1)):    
+        a, c = plt_alpha[i], [1, plt_alpha[i], plt_alpha[i]] 
+        pl.plot([st_x[i],ed_x[i]],[st_y[i],ed_y[i]],'w-',linewidth=1.0, alpha=a)
+    
+    pl.xlim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
+    pl.ylim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
+    pl.show()
+    return 0
 
 if __name__ == '__main__':
     halo_raytrace()
