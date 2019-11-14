@@ -13,12 +13,13 @@ import create_grid_maps as gm
 import raytrace_them_all  as rt
 import make_lensing_mocks as mk
 
-def halo_raytrace(cutout_dir = './nfw_particle_realization', 
-                  out_dir = './raytrace_output'):
+def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'), 
+                  out_dir = os.path.abspath('./raytrace_output')):
     
         # crate inputs instance
         print('reading inputs...')
-        inp = inps.inputs(cutout_dir, out_dir, mean_lens_width = 70, mpp = None)        
+        inp = inps.inputs(cutout_dir, out_dir, mean_lens_width = 70, mpp = None, 
+                          halo_id='nfw_realization')        
        
         # make grid maps
         print('making grid maps...')

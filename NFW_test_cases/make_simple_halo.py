@@ -58,7 +58,8 @@ class simple_halo:
         # find simulation step equivalent to halo z (needed for bookkeeping by raytrace)
         a = np.linspace(1/(sim_maxZ+1), 1, sim_steps)
         zz = 1/a-1
-        self.shell = 500 - np.searchsorted(zz, 0.3, sorter=np.argsort(zz))
+        # -10 steps here for buffer (halo must not be at shell boundary)
+        self.shell = (500 - np.searchsorted(zz, 0.3, sorter=np.argsort(zz))) - 10
          
         # these to be filled by populate_halo()
         self.profile_particles = None
@@ -187,4 +188,4 @@ class simple_halo:
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
     hh.populate_halo(N=10000)
-    hh.output_particles(vis_debug=True)
+    hh.output_particles(vis_debug=False)

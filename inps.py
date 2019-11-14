@@ -9,16 +9,19 @@ lib_path = '/home/hollowed/repos/clusterMultiPlanesRayTracing/lib/'
 class inputs():
  
     def __init__(self, halo_cutout_parent_dir, output_dir, max_depth = None, safe_zone=20.0, 
-                 mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7, mpp = 1847949963.891378): 
+                 mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7, mpp = 1847949963.891378,
+                 halo_id=None): 
     
         #--------------------------------------------------------------------
         # input paths
         #
        
         self.input_prtcls_dir = halo_cutout_parent_dir
-        self.halo_id = halo_cutout_parent_dir.split('halo_')[-1]
         self.halo_prop_file = '{}/properties.csv'.format(self.input_prtcls_dir)
         self.halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
+        if(halo_id is None):
+            self.halo_id = halo_cutout_parent_dir.split('halo_')[-1]
+        else: self.halo_id = halo_id
         
         #--------------------------------------------------------------------
         # cutout quantities
