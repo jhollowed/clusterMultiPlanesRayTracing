@@ -120,6 +120,10 @@ class simple_halo:
         x = r *  np.sin(theta) * np.cos(phi) + self.halo_r
         y = r *  np.sin(theta) * np.sin(phi)
         z = r *  np.cos(theta)
+        # now find projected positions wrt origin after pushing halo down x-axis
+        r_sky = np.linalg.norm([x,y,z], axis=0)
+        theta_sky = np.arccos(z/r_sky)
+        phi_sky = np.arctan(y/x)
         
         # this also expects Mpc rather than Mpc/h
         zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc)/self.cosmo.h)
@@ -139,7 +143,7 @@ class simple_halo:
             ax.set_ylabel(r'$y\>[Mpc/h]$')
             ax.set_zlabel(r'$z\>[Mpc/h]$')
 
-            ax2.scatter(theta, phi, c='k', alpha=0.25)
+            ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.25)
             ax.set_xlabel(r'$\theta\>[Mpc/h]$')
             ax.set_ylabel(r'$\phi\>[Mpc/h]$')
             plt.show()
@@ -148,8 +152,8 @@ class simple_halo:
         x.astype('f').tofile('{}/x.{}.bin'.format(output_dir, self.shell))
         y.astype('f').tofile('{}/y.{}.bin'.format(output_dir, self.shell))
         z.astype('f').tofile('{}/z.{}.bin'.format(output_dir, self.shell))
-        theta.astype('f').tofile('{}/theta.{}.bin'.format(output_dir, self.shell))
-        phi.astype('f').tofile('{}/phi.{}.bin'.format(output_dir, self.shell))
+        theta_sky.astype('f').tofile('{}/theta.{}.bin'.format(output_dir, self.shell))
+        phi_sky.astype('f').tofile('{}/phi.{}.bin'.format(output_dir, self.shell))
         redshift.astype('f').tofile('{}/redshift.{}.bin'.format(output_dir, self.shell))
         self._write_prop_file(output_dir)
 
