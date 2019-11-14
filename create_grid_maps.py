@@ -289,7 +289,7 @@ class grid_map_generator():
             #
             
             # ------ do density estiamtion via system call to SDTFE exe ------
-     
+
             # x, y, z in column major
             dtfe_input_array = np.ravel(np.vstack([x1in, x2in, x3in]))
             dtfe_input_array.astype('f').tofile(dtfe_file)

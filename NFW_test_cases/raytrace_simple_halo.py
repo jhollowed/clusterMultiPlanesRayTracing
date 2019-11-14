@@ -14,12 +14,12 @@ import raytrace_them_all  as rt
 import make_lensing_mocks as mk
 
 def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'), 
-                  out_dir = os.path.abspath('./raytrace_output')):
+                  out_dir = os.path.abspath('./lensing_output')):
     
         # crate inputs instance
         print('reading inputs...')
         inp = inps.inputs(cutout_dir, out_dir, mean_lens_width = 70, mpp = None, 
-                          halo_id='nfw_realization')        
+                          halo_id='nfw_realization', min_depth=0.275)        
        
         # make grid maps
         print('making grid maps...')
@@ -32,12 +32,6 @@ def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'),
         rt_gen = rt.ray_tracer(inp, overwrite=True)
         rt_gen.read_grid_maps_zs0()
         rt_gen.raytrace_grid_maps_for_zs()
-
-        print('making mocks...')
-        mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
-        mock_gen.read_raytrace_planes()
-        mock_gen.make_lensing_mocks(vis_shears = False)
-
 
 def vis_outputs(cutout_dir = './data/lenses/prtcls', lensing_dir = './output', 
                 df_lenses=1.0, df_sources=1.0):

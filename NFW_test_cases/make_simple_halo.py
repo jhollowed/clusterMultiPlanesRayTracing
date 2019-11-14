@@ -70,7 +70,7 @@ class simple_halo:
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
 
-    def populate_halo(self, N=10000):
+    def populate_halo(self, N=10000, rfrac=1):
         """
         Generates a 3-dimensional relization of the discreteley-sampled NFW mass distribution for
         this halo. The radial positions are obtained with the HaloTools 
@@ -81,12 +81,16 @@ class simple_halo:
         Parameters
         ----------
         N : int
-            The number of particles to drawn 
+            The number of particles to drawn
+        rfac: float, optional
+            Multiplier of r200c which sets the maximum scale of the population
+            (concentration will be scaled as well, as c=r200c/r_s). Defaults to 1
         """
        
         # the radial positions in comoving Mpc/h
-        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = self.c, 
-                                                          halo_radius = self.r200c)
+        
+        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfac*self.c, 
+                                                          halo_radius = rfac*self.r200c)
         self.profile_particles = r
         self.mpp = self.m200c / N
          
@@ -123,8 +127,8 @@ class simple_halo:
         z = r *  np.cos(theta)
         # now find projected positions wrt origin after pushing halo down x-axis (Mpc/h and arcsec)
         r_sky = np.linalg.norm([x,y,z], axis=0)
-        theta_sky = np.arccos(z/r_sky) * 180/np.pi() * 3600
-        phi_sky = np.arctan(y/x) * 180/np.pi() * 3600
+        theta_sky = np.arccos(z/r_sky) * 180/np.pi * 3600
+        phi_sky = np.arctan(y/x) * 180/np.pi * 3600
         
         # this also expects Mpc rather than Mpc/h
         zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc)/self.cosmo.h)
@@ -187,5 +191,5 @@ class simple_halo:
 
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
-    hh.populate_halo(N=10000)
+    hh.populate_halo(N=10000, rfrac=5)
     hh.output_particles(vis_debug=False)

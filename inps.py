@@ -10,7 +10,7 @@ class inputs():
  
     def __init__(self, halo_cutout_parent_dir, output_dir, max_depth = None, safe_zone=20.0, 
                  mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7, mpp = 1847949963.891378,
-                 halo_id=None): 
+                 halo_id = None, min_depth = 0): 
     
         #--------------------------------------------------------------------
         # input paths
@@ -54,6 +54,7 @@ class inputs():
         # define lens planes
         #
         
+        # define lens plane edges
         self.num_lens_planes = int(self.depth_mpc / self.mean_lens_width)
         self.lens_plane_edges = np.linspace(0, self.max_redshift, self.num_lens_planes+1)
         
@@ -65,6 +66,12 @@ class inputs():
         for i in bad_edges:
             self.lens_plane_edges = np.delete(self.lens_plane_edges, i)
             self.num_lens_planes -= 1
+        
+        # trim off lens planes below min_depth (for the use case that there is an empty LOS 
+        # except for at some specific location, as in the simple NFW test provided)
+        self.lens_plane_edges = self.lens_plane_edges[self.lens_plane_edges >= min_depth]
+        self.num_lens_planes = len(self.lens_plane_edges)-1
+        
         
         #---------------------------------------------------------------------------------
         # lensing params
