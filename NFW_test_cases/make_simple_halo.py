@@ -144,8 +144,8 @@ class simple_halo:
             ax.set_zlabel(r'$z\>[Mpc/h]$')
 
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.25)
-            ax.set_xlabel(r'$\theta\>[Mpc/h]$')
-            ax.set_ylabel(r'$\phi\>[Mpc/h]$')
+            ax2.set_xlabel(r'$\theta\>[Mpc/h]$')
+            ax2.set_ylabel(r'$\phi\>[Mpc/h]$')
             plt.show()
 
         # write out all to binary
