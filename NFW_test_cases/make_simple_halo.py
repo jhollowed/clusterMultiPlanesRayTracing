@@ -199,4 +199,4 @@ class simple_halo:
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
     hh.populate_halo(N=10000, rfrac=10)
-    hh.output_particles(vis_debug=True)
+    hh.output_particles(vis_debug=False)
