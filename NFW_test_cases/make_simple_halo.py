@@ -120,10 +120,10 @@ class simple_halo:
         x = r *  np.sin(theta) * np.cos(phi) + self.halo_r
         y = r *  np.sin(theta) * np.sin(phi)
         z = r *  np.cos(theta)
-        # now find projected positions wrt origin after pushing halo down x-axis
+        # now find projected positions wrt origin after pushing halo down x-axis (Mpc/h and arcsec)
         r_sky = np.linalg.norm([x,y,z], axis=0)
-        theta_sky = np.arccos(z/r_sky)
-        phi_sky = np.arctan(y/x)
+        theta_sky = np.arccos(z/r_sky) * 180/np.pi() * 3600
+        phi_sky = np.arctan(y/x) * 180/np.pi() * 3600
         
         # this also expects Mpc rather than Mpc/h
         zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc)/self.cosmo.h)
