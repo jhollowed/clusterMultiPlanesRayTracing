@@ -1,8 +1,12 @@
 import os
 import pdb
+import copy
 import scipy
+import seaborn
 import mass_conc
 import numpy as np
+from scipy import stats
+import matplotlib as mpl
 from matplotlib import rc
 from astropy import units as u
 import matplotlib.pyplot as plt
@@ -115,9 +119,15 @@ class simple_halo:
         if not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
 
+        # the particles are already randomly populating an NFW profile, now let's add
+        # in uniform random positions in the angular coordinates as well
+        # Note that this is not the same as a uniform distribution in theta and phi 
+        # over [0, pi] and [0, 2pi], since the area element on a sphere is a function of 
+        # the coaltitude! See http://mathworld.wolfram.com/SpherePointPicking.html
         r = self.profile_particles
-        phi = np.random.uniform(low=0, high=np.pi*2, size = len(r))
-        theta = np.random.uniform(low=0, high=np.pi, size = len(r))
+        phi = np.random.uniform(low=0, high=2*np.pi, size = len(r))
+        v = np.random.uniform(low=0, high=1, size = len(r))
+        theta = np.arccos(2*v-1)
         
         # the radial positions are in Mpc/h, though astropy expects Mpc, so modify the argument
         # multiply the h back through after computing
@@ -148,7 +158,7 @@ class simple_halo:
             ax.set_ylabel(r'$y\>[Mpc/h]$')
             ax.set_zlabel(r'$z\>[Mpc/h]$')
 
-            ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.25)
+            ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
             ax2.set_xlabel(r'$\theta\>[Mpc/h]$')
             ax2.set_ylabel(r'$\phi\>[Mpc/h]$')
             plt.show()
@@ -185,10 +195,7 @@ class simple_halo:
         np.savetxt('{}/../properties.csv'.format(output_dir), [props], 
                    fmt='%.6f,%i,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 
                    delimiter=',',header=cols)
-        
-
-
-
+    
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
     hh.populate_halo(N=10000, rfrac=10)
