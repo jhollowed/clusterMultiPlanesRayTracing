@@ -15,8 +15,10 @@ from astropy.cosmology import WMAP7, z_at_value
 from halotools.empirical_models import NFWProfile
 rc('text', usetex=True)
 
+import cosmology as cm
+
 class simple_halo:
-    def __init__(self, m200c, z, cosmo=None, sim_maxZ=200, sim_steps=500):
+    def __init__(self, m200c, z, cosmo=cm.OuterRim, sim_maxZ=200, sim_steps=500):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -54,7 +56,6 @@ class simple_halo:
         
         self.redshift = z
         self.m200c = m200c
-        if(cosmo is None): cosmo=WMAP7
         self.cosmo = cosmo
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
         self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c)
@@ -199,6 +200,6 @@ class simple_halo:
                    delimiter=',',header=cols)
     
 if __name__ == '__main__':
-    hh = simple_halo(m200c = 1e14, z=0.3)
-    hh.populate_halo(N=10000, rfrac=10)
+    hh = simple_halo(m200c = 1e14, z = 0.3)
+    hh.populate_halo(N = 10000, rfrac = 6)
     hh.output_particles(vis_debug=True)

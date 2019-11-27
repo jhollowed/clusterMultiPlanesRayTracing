@@ -17,13 +17,16 @@ import inps
 #import raytrace_them_all  as rt
 #import make_lensing_mocks as mk
 
-def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'), 
+def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output')):
     
         # crate inputs instance
-        print('reading inputs...')
-        inp = inps.inputs(cutout_dir, out_dir, mean_lens_width = 70, mpp = None, 
-                          halo_id='nfw_realization', min_depth=0.275)        
+        print('reading inputs...') 
+        halo_prop_file = '{}/properties.csv'.format(halo_dir)
+        halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
+        inp = inps.inputs(halo_dir, out_dir, mean_lens_width = 70, 
+                          halo_id='nfw_realization', min_depth=0.275, 
+                          sim={'mpp':halo_props['mpp']})
        
         # make grid maps
         print('making grid maps...')
@@ -42,12 +45,12 @@ def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'),
         mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 1000)
 
 
-def vis_outputs(cutout_dir = os.path.abspath('./nfw_particle_realization'), 
+def vis_outputs(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                 lensing_dir = os.path.abspath('./lensing_output')):
     
     lensed_cutout = lensing_dir
-    particles = cutout_dir 
-    inp = inps.inputs(cutout_dir, lensing_dir, mean_lens_width = 70, mpp = None, 
+    particles = halo_dir 
+    inp = inps.inputs(halo_dir, lensing_dir, mean_lens_width = 70, mpp = None, 
                       halo_id='nfw_realization', min_depth=0.275)        
     
     gmaps = h.File(glob.glob('{}/*gmaps*.hdf5'.format(inp.outputs_path))[0])
