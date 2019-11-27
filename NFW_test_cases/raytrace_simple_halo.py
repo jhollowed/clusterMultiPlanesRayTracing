@@ -5,13 +5,17 @@ import time
 import glob
 import h5py as h
 import numpy as np
+import matplotlib
 #from mpi4py import MPI
+from matplotlib import rc
+import matplotlib.pyplot as plt
+rc('text', usetex=True)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import inps
-import create_grid_maps as gm
-import raytrace_them_all  as rt
-import make_lensing_mocks as mk
+#import create_grid_maps as gm
+#import raytrace_them_all  as rt
+#import make_lensing_mocks as mk
 
 def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output')):
@@ -51,35 +55,56 @@ def vis_outputs(cutout_dir = os.path.abspath('./nfw_particle_realization'),
     raytrace_highz = sorted(list(raytrace.keys()), key=lambda s: int(s.split('plane')[-1]))[-1]
     gmaps_halo = sorted(list(gmaps.keys()))[0]
 
-    mock = glob.glob('{}/*mock*hdf5'.format(lensing_dir))[0]
+    mock = h.File(glob.glob('{}/*mock*.hdf5'.format(inp.outputs_path))[0])
     zgroups = list(mock.keys())
 
-    zs, x1, x2, s1, s2, k0 = [], [], [], [], [], []        
+    zs, a1, a2, x1, x2, s1, s2, k0 = [], [], [], [], [], [], [], []
     for z in zgroups:    
         zsource = mock[z]['zs'][:][0]
-        if(zsource < inp.halo_redshift): continue
-        
+        #if(zsource < inp.halo_redshift): continue
+
         x1.extend(mock[z]['xr1'][:])
         x2.extend(mock[z]['xr2'][:])
         s1.extend(mock[z]['sr1'][:])
         s2.extend(mock[z]['sr2'][:])
-        zs.extend(list(np.ones(len(mock[z]['xr1'][:]))*zsource))
-    
-    select_sources = np.random.choice(np.arange(len(x1)), int(len(x1)*df_sources), replace=False)
-    x1 = np.array(x1)[select_sources]
-    x2 = np.array(x2)[select_sources]
-    s1 = np.array(s1)[select_sources]
-    s2 = np.array(s2)[select_sources]
-    zs = np.array(zs)[select_sources]
+        zs.extend(list(np.ones(len(mock[z]['sr1'][:]))*zsource))
+        a1.extend(raytrace[z]['alpha1'])
+        a2.extend(raytrace[z]['alpha2'])
     
     raytrace_k0 = raytrace[raytrace_highz]['kappa0'][:]
     gmaps_k0 = gmaps[gmaps_halo]['kappa0'][:]
     
-    shear_vis_mocks(x1, x2, s1, s2, gmaps_k0, zs=zs, log=True)
-
-
-def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa, zs=None, log=True):
+    my_norm = matplotlib.colors.Normalize(vmin=.25, vmax=.75, clip=False)
+    fontsize=9
+    f = plt.figure()
+    ax1 = f.add_subplot(221)
+    ax2 = f.add_subplot(222)
+    ax3 = f.add_subplot(223)
+    titles = [r'$\alpha_\theta$', r'$\alpha_\phi$', r'$\kappa,\>\>\gamma_{1,2}$']
+    extent=np.array([-1, 1, -1, 1])*inp.bsz_arc/2
+    ax1.imshow(a1, aspect='equal', extent=extent, origin='higher')
+    ax2.imshow(a2, aspect='equal', extent=extent, origin='higher')
     
+    shear_vis_mocks(inp, np.array(x1), np.array(x2), np.array(s1), np.array(s2), 
+                    np.array(gmaps_k0), ax=ax3, zs=np.array(zs), log=False)
+    axes = [ax1, ax2, ax3]
+    for i in range(len(axes)):
+        ax = axes[i]
+        ax.set_xlabel(r'$\theta\>[\mathrm{arcmin}]$', fontsize=fontsize)
+        ax.set_ylabel(r'$\phi\>[\mathrm{arcmin}]$', fontsize=fontsize)
+        ax.title.set_text(titles[i])
+        ax.title.set_fontsize(fontsize*1.25)
+        ax.set_xlim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
+        ax.set_ylim(-inp.bsz_arc/2.0, inp.bsz_arc/2.0)
+    ax3.set_xlim(-inp.bsz_arc/5.0, inp.bsz_arc/5.0)
+    ax3.set_ylim(-inp.bsz_arc/5.0, inp.bsz_arc/5.0)
+    plt.tight_layout()
+    #plt.savefig('{}/lensed_nfw.png'.format(lensing_dir), dpi=600)
+    plt.show()
+
+
+def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, ax, zs=None, log=True):
+     
     g1 = shear1
     g2 = shear2
     if(log): 
@@ -88,14 +113,11 @@ def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa, zs=None, log=True):
     mink = min(np.ravel(kappa)[np.ravel(kappa) != 0])
     
     #---------------------------------------------------------------------
-    pl.figure(figsize=(10,10),dpi=80)
-    pl.imshow(kappa.T,aspect='equal',cmap=pl.cm.viridis,origin='higher',
-              extent=[-self.inp.bsz_arc/2.0,
-                       self.inp.bsz_arc/2.0,
-                      -self.inp.bsz_arc/2.0,
-                       self.inp.bsz_arc/2.0,])
-
-    scale_shear = 100
+    extent=np.array([-1, 1, -1, 1])*inp.bsz_arc/2
+    ax.imshow(np.log((kappa.clip(min=1e-3)).T),aspect='equal',cmap=plt.cm.viridis, origin='higher',
+              extent=extent)
+    
+    scale_shear = 250
     ampli = np.sqrt(g1**2 + g2**2)
     alph = np.arctan2(g2, g1) / 2.0
     st_x = x1 - ampli * np.cos(alph) * scale_shear
@@ -104,19 +126,13 @@ def shear_vis_mocks(self, x1, x2, shear1, shear2, kappa, zs=None, log=True):
     ed_y = x2 + ampli * np.sin(alph) * scale_shear
 
     if(zs is not None):
-        plt_alpha = np.min(np.array([np.ones(len(zs)), 1-( (zs - self.inp.halo_redshift)/3)]).T, axis=1)
+        plt_alpha = np.min(np.array([np.ones(len(zs)), 1-( (zs - inp.halo_redshift)/3)]).T, axis=1)
     else:
         plt_alpha = np.ones(len(g1))
 
-    print('plotting')
-    for i in range(len(g1)):    
-        a, c = plt_alpha[i], [1, plt_alpha[i], plt_alpha[i]] 
-        pl.plot([st_x[i],ed_x[i]],[st_y[i],ed_y[i]],'w-',linewidth=1.0, alpha=a)
+    print('plotting (gimmie a minute)')
+    for i in range(len(g1)):
+        ax.plot([st_x[i],ed_x[i]],[st_y[i],ed_y[i]],'w-',linewidth=0.75)
     
-    pl.xlim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
-    pl.ylim(-self.inp.bsz_arc/2.0, self.inp.bsz_arc/2.0)
-    pl.show()
-    return 0
-
 if __name__ == '__main__':
     halo_raytrace()

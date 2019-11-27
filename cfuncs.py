@@ -1,57 +1,3 @@
-'''
-The Cosmological model
-
-'''
-
-# from astropy.cosmology import Planck15
-# cosmo = Planck15
-
-#from astropy.cosmology import FlatLambdaCDM
-#cosmo = FlatLambdaCDM(H0=71, Om0=0.264, Ob0=0.044792699861138666)
-from astropy.cosmology import WMAP7 as cosmo
-import astropy.units as units
-
-vc = 2.998e5 #km/s
-G = 4.3011790220362e-09 # Mpc/h (Msun/h)^-1 (km/s)^2
-apr = 206264.80624709636 #arcsec/radian
-
-def Dc(z):
-    # return the comoving distance to redshift z in Mpc/h
-    res = cosmo.comoving_distance(z).value*cosmo.h
-    return res
-
-def Dc2(z1,z2):
-    # return the comoving distance between redshifts z1 and z2 in Mpc/h
-    Dcz1 = (cosmo.comoving_distance(z1).value*cosmo.h)
-    Dcz2 = (cosmo.comoving_distance(z2).value*cosmo.h)
-    res = (Dcz2-Dcz1+1e-8)
-    return res
-
-def Da(z):
-    # return the proper distance to redshift z in Mpc/h
-    res = cosmo.comoving_distance(z).value*cosmo.h/(1+z)
-    return res
-
-def Da2(z1,z2):
-    # return the proper distance to redshift z in Mpc/h
-    Dcz1 = (cosmo.comoving_distance(z1).value*cosmo.h)
-    Dcz2 = (cosmo.comoving_distance(z2).value*cosmo.h)
-    res = (Dcz2-Dcz1+1e-8)/(1+z2)
-    return res
-
-def projected_rho_mean(z1, z2):
-    # return the mean density of the unvierse integrated across redshifts 
-    # z1 and z2, in comoving (M_sun/h)(Mpc/h)^-3
-    pc0 = cosmo.critical_density(0).to(units.Msun/units.Mpc**3).value
-    Om0 = cosmo.Om0
-    rho_mean_0 = Om0 * pc0
-    
-    d1 = cosmo.comoving_distance(z1).value
-    d2 = cosmo.comoving_distance(z2).value
-
-    return rho_mean_0 * (d2-d1) / cosmo.h
-    
-
 #---------------------------------------------------------------------------------
 # Call C functions
 #
@@ -478,5 +424,3 @@ def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
     res = 1.0/(al11*al22-(al11+al22)-al12*al21+1.0)
 
     return res
-
-

@@ -99,7 +99,7 @@ class simple_halo:
         self.mpp = self.m200c / N
          
         
-    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False):
+    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
         """
         Computes three dimensional quantities for particles sampled along radial dimension. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -115,6 +115,7 @@ class simple_halo:
             If True, display a 3d plot of the particles to be output for visual inspection
         """
        
+        if(vis_output_dir is None): vis_output_dir = output_dir
         output_dir = '{}/Cutout{}'.format(output_dir, self.shell)
         if not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
@@ -154,13 +155,14 @@ class simple_halo:
             ax2 = f.add_subplot(122)
 
             ax.scatter(x, y, z, c='k', alpha=0.25)
-            ax.set_xlabel(r'$x\>[Mpc/h]$')
-            ax.set_ylabel(r'$y\>[Mpc/h]$')
-            ax.set_zlabel(r'$z\>[Mpc/h]$')
+            ax.set_xlabel(r'$x\>[Mpc/h]$', fontsize=16)
+            ax.set_ylabel(r'$y\>[Mpc/h]$', fontsize=16)
+            ax.set_zlabel(r'$z\>[Mpc/h]$', fontsize=16)
 
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
-            ax2.set_xlabel(r'$\theta\>[Mpc/h]$')
-            ax2.set_ylabel(r'$\phi\>[Mpc/h]$')
+            ax2.set_xlabel(r'$\theta\>[Mpc/h]$', fontsize=16)
+            ax2.set_ylabel(r'$\phi\>[Mpc/h]$', fontsize=16)
+            #plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
             plt.show()
 
         # write out all to binary
@@ -199,4 +201,4 @@ class simple_halo:
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z=0.3)
     hh.populate_halo(N=10000, rfrac=10)
-    hh.output_particles(vis_debug=False)
+    hh.output_particles(vis_debug=True)

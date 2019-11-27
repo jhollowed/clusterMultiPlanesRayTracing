@@ -1,16 +1,15 @@
 import os
 import pdb
 import glob
+import shutil
 import numpy as np
 from astropy.cosmology import WMAP7
-import shutil
-lib_path = '/home/hollowed/repos/clusterMultiPlanesRayTracing/lib/'
 
-class inputs():
- 
-    def __init__(self, halo_cutout_parent_dir, output_dir, max_depth = None, safe_zone=20.0, 
-                 mean_lens_width=70, z_init=200, sim_steps=500, cosmo=WMAP7, mpp = 1847949963.891378,
-                 halo_id = None, min_depth = 0): 
+import cosmology as cm
+
+class inputs(): 
+    def __init__(self, halo_cutout_parent_dir, output_dir, min_depth=0, max_depth = None, 
+                 safe_zone=20.0, mean_lens_width=70, halo_id = None, cosmo=None, sim=None): 
     
         #--------------------------------------------------------------------
         # input paths
@@ -21,7 +20,19 @@ class inputs():
         self.halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
         if(halo_id is None):
             self.halo_id = halo_cutout_parent_dir.split('halo_')[-1]
-        else: self.halo_id = halo_id
+        else: self.halo_id = halo_id 
+
+        #--------------------------------------------------------------------
+        # get/set simulation parameters
+        #
+        if(cosmo is not None): 
+            cm.update_cosmology(cosmo)
+        else:
+            cosmo = cm.cosmo
+        if(sim is not None):
+            cm.update_sim(sim)
+        else:
+            sim = cm.sim
         
         #--------------------------------------------------------------------
         # cutout quantities
@@ -35,11 +46,8 @@ class inputs():
         self.bsz_mpc = float(self.halo_props['boxRadius_Mpc']*2) # Mpc
         self.snapid_list = np.array([int(s.split('Cutout')[-1]) for s in 
                                      glob.glob('{}/*Cutout*'.format(self.input_prtcls_dir))])
-        self.snapid_redshift = 1 / np.linspace(1/(z_init+1), 1, sim_steps)[self.snapid_list] - 1
-        if(mpp is not None): #solMass/h
-            self.mpp = mpp
-        else:
-            self.mpp = float(self.halo_props['mpp'])
+        self.snapid_redshift = 1 / np.linspace(1/(self.sim['z_init']+1), 1, self.sim['sim_steps'])[self.snapid_list] - 1
+        self.mpp = self.sim['mpp']
 
         # trim to depth given by max_depth
         comv = cosmo.comoving_distance
@@ -87,7 +95,10 @@ class inputs():
         self.npad = 5
     
         # gen grid points
-        self.xi1, self.xi2 = self._make_r_coor(self.bsz_arc, self.nnn)
+        ds = self.bsz_arc/self.nnn
+        x1 = np.linspace(0,self.bsz_arc-ds,self.nnn)-self.bsz_arc/2.0+ds/2.0
+        x2 = np.linspace(0,self.bsz_arc-ds,self.nnn)-self.bsz_arc/2.0+ds/2.0
+        self.xi1, self.xi2 = np.meshgrid(x1,x2)
 
         #---------------------------------------------------------------------------------
         # outputs
@@ -103,11 +114,3 @@ class inputs():
                     os.makedirs(path)
         if( len(glob.glob('{}/properties.csv'.format(self.outputs_path))) == 0):
             shutil.copyfile(self.halo_prop_file, '{}/properties.csv'.format(self.outputs_path))
-
-    
-    def _make_r_coor(self, bs, nc):
-        ds = bs/nc
-        x1 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-        x2 = np.linspace(0,bs-ds,nc)-bs/2.0+ds/2.0
-        x2,x1 = np.meshgrid(x1,x2)
-        return x1,x2
