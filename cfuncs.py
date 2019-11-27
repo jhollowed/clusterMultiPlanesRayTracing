@@ -5,8 +5,13 @@ import sys,os
 import inps as inp
 import numpy as np
 import ctypes as ct
+import cosmology as cm
+
 here = os.path.abspath(os.path.dirname(__file__))
 lib_path = os.path.join(here, 'lib/')
+vc = cm.vc
+G = cm.G
+apr = cm.apr
 
 #---------------------------------------------------------------------------------
 sps = ct.CDLL(lib_path+"lib_so_sph_w_omp/libsphsdens.so")
@@ -400,20 +405,20 @@ def sigma_crit(z1, z2):
     # return the critical surface density for the lensing geometry of a lens-source pair
     # at redshifts z1 and z2, respectively, in proper (M_sun/h) / (Mpc/h)**2
 
-    # sigma_crit = cf.vc*cf.vc/(4.0*np.pi*cf.G)*(1+zl)*cf.Dc(zs)/(cf.Dc(zl)*cf.Dc2(zl,zs))
-    res = vc*vc/(4.0*np.pi*G)*Da(z2)/(Da(z1)*Da2(z1,z2))
+    # sigma_crit = cf.vc*cf.vc/(4.0*np.pi*cf.G)*(1+zl)*cf.cm.Dc(zs)/(cf.cm.Dc(zl)*cf.cm.Dc2(zl,zs))
+    res = vc*vc/(4.0*np.pi*G)*cm.Da(z2)/(cm.Da(z1)*cm.Da2(z1,z2))
     return res
 
 def ai_to_ah(ai,zl,zs):
-    res = Da(zs)/Da2(zl,zs)*ai
+    res = cm.Da(zs)/cm.Da2(zl,zs)*ai
     return res
 
 def ah_to_ai(ah,zl,zs):
-    res = Da2(zl,zs)/Da(zs)*ah
+    res = cm.Da2(zl,zs)/cm.Da(zs)*ah
     return res
 
 def al_zs1_to_zs2(ai,zl,zs1,zs2):
-    res = Da(zs1)/Da2(zl,zs1)*Da2(zl,zs2)/Da(zs2)*ai
+    res = cm.Da(zs1)/cm.Da2(zl,zs1)*cm.Da2(zl,zs2)/cm.Da(zs2)*ai
     return res
 
 def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
