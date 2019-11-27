@@ -76,7 +76,7 @@ class simple_halo:
                          {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
                           'ns':0.963, 'relspecies':False})
         c_u = mass_conc(m200c, '200c', z, model='child18')
-        c_sig = c_u-L/usr/local/opt/llvm/lib/3
+        c_sig = c_u/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
 
