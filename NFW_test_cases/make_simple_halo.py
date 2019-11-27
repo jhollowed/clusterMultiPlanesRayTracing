@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from astropy.cosmology import WMAP7, z_at_value
 from halotools.empirical_models import NFWProfile
+from colossus.concentration import concentration as mass_conc
 rc('text', usetex=True)
 
 import cosmology as cm
@@ -62,16 +63,17 @@ class simple_halo:
 
         # find simulation step equivalent to halo z (needed for bookkeeping by raytrace)
         a = np.linspace(1/(sim_maxZ+1), 1, sim_steps)
-        zz = 1/a-1
+        zall = 1/a-1
         # -10 steps here for buffer (halo must not be at shell boundary)
-        self.shell = (500 - np.searchsorted(zz, 0.3, sorter=np.argsort(zz))) - 10
+        self.shell = (500 - np.searchsorted(zall, z, sorter=np.argsort(zall))) - 10
          
         # these to be filled by populate_halo()
         self.profile_particles = None
         self.mpp = None
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
-        c_u, c_sig = mass_conc.child2018(m200c)
+        c_u = mass_conc(m200c, '200c', z, model='child18')
+        c_sig = c/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
 
