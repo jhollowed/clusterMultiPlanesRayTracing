@@ -147,10 +147,14 @@ class lensing_mock_generator():
             ys1_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
             ys2_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
         else:
-            ys1_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
-                                   for i in range(len(zs))])
-            ys2_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
-                                   for i in range(len(zs))])
+            grid = np.meshgrid(np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)), 
+                               np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)))
+            ys1_arrays = np.array([np.ravel(grid[0]) for i in range(len(zs))])
+            ys2_arrays = np.array([np.ravel(grid[1]) for i in range(len(zs))])
+            #ys1_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            #                       for i in range(len(zs))])
+            #ys2_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            #                       for i in range(len(zs))])
        
         self.print('created out file {}'.format(self.out_file.filename))
         self.print('reading {}'.format(self.raytrace_file.filename))

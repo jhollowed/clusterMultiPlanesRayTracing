@@ -5,7 +5,7 @@ import time
 import glob
 import h5py as h
 import numpy as np
-#from mpi4py import MPI
+from mpi4py import MPI
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import inps
@@ -31,11 +31,11 @@ def halo_raytrace(cutout_dir = os.path.abspath('./nfw_particle_realization'),
         print('raytracing from z=1...')
         rt_gen = rt.ray_tracer(inp, overwrite=True)
         rt_gen.read_grid_maps_zs0()
-        rt_gen.raytrace_grid_maps_for_zs(ZS=1)
+        rt_gen.raytrace_grid_maps_for_zs(ZS=[1])
             
         mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
         mock_gen.read_raytrace_planes()
-        mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 1000)
+        mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 6400)
 
 
 def vis_outputs(cutout_dir = os.path.abspath('./nfw_particle_realization'), 

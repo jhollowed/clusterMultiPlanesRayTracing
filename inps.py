@@ -77,7 +77,7 @@ class inputs():
         # lensing params
         #
 
-        self.nnn = 1024
+        self.nnn =1024
         self.dsx = self.bsz/self.nnn
         self.bsz_arc = self.bsz*3600.
         self.dsx_arc = self.dsx*3600.
