@@ -5,7 +5,10 @@ import inps
 import h5py
 import numpy as np
 import cfuncs as cf
+import cosmology as cm
 from astropy.table import Table
+
+# ------------------------- utilities ----------------------------------
 
 def printflush(s):
     print(s)
@@ -119,7 +122,7 @@ class ray_tracer():
             shear2_array = np.zeros((nzlp,ncc,ncc))
 
             for j in range(nzlp):
-                rescale = cf.Da(ZS0)/cf.Da2(zl_array[j],ZS0)*cf.Da2(zl_array[j],zs)/cf.Da(zs)
+                rescale = cm.Da(ZS0)/cm.Da2(zl_array[j],ZS0)*cm.Da2(zl_array[j],zs)/cm.Da(zs)
                 kappa0_array[j] = self.kappa_zs0[j]*rescale
                 alpha1_array[j] = self.alpha1_zs0[j]*rescale
                 alpha2_array[j] = self.alpha2_zs0[j]*rescale
@@ -234,9 +237,9 @@ class ray_tracer():
             ahm11 = cf.ai_to_ah(aim11,z1,zs)
             ahm12 = cf.ai_to_ah(aim12,z1,zs)
 
-            bij = cf.Da(z1)*cf.Da2(z0,z2)/(cf.Da(z2)*cf.Da2(z0,z1))
-            x21 = x11*bij-(bij-1)*x01-ahm11*cf.Da2(z1,z2)/cf.Da(z2)
-            x22 = x12*bij-(bij-1)*x02-ahm12*cf.Da2(z1,z2)/cf.Da(z2)
+            bij = cm.Da(z1)*cm.Da2(z0,z2)/(cm.Da(z2)*cm.Da2(z0,z1))
+            x21 = x11*bij-(bij-1)*x01-ahm11*cm.Da2(z1,z2)/cm.Da(z2)
+            x22 = x12*bij-(bij-1)*x02-ahm12*cm.Da2(z1,z2)/cm.Da(z2)
 
             x21.astype('double').tofile(self.inp.xj_path+str(n-1)+"_xj1.bin")
             x22.astype('double').tofile(self.inp.xj_path+str(n-1)+"_xj2.bin")
@@ -268,9 +271,9 @@ class ray_tracer():
             ahjm11 = cf.ai_to_ah(aijm11,zim1,zs)
             ahjm12 = cf.ai_to_ah(aijm12,zim1,zs)
 
-            bij = cf.Da(zim1)*cf.Da2(zim2,zi)/cf.Da(zi)/cf.Da2(zim2,zim1)
-            xj1 = xjm11*bij-(bij-1)*xjm21-ahjm11*cf.Da2(zim1,zi)/cf.Da(zi)
-            xj2 = xjm12*bij-(bij-1)*xjm22-ahjm12*cf.Da2(zim1,zi)/cf.Da(zi)
+            bij = cm.Da(zim1)*cm.Da2(zim2,zi)/cm.Da(zi)/cm.Da2(zim2,zim1)
+            xj1 = xjm11*bij-(bij-1)*xjm21-ahjm11*cm.Da2(zim1,zi)/cm.Da(zi)
+            xj2 = xjm12*bij-(bij-1)*xjm22-ahjm12*cm.Da2(zim1,zi)/cm.Da(zi)
 
             xj1.astype('double').tofile(self.inp.xj_path+str(n-1)+"_xj1.bin")
             xj2.astype('double').tofile(self.inp.xj_path+str(n-1)+"_xj2.bin")

@@ -1,9 +1,7 @@
 import os
+import sys
 import pdb
-import copy
 import scipy
-import seaborn
-import mass_conc
 import numpy as np
 from scipy import stats
 import matplotlib as mpl
@@ -11,12 +9,17 @@ from matplotlib import rc
 from astropy import units as u
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from colossus.cosmology import cosmology as colcos
 from astropy.cosmology import WMAP7, z_at_value
 from halotools.empirical_models import NFWProfile
+from colossus.halo.concentration import concentration as mass_conc
 rc('text', usetex=True)
 
+sys.path.append('..')
+import cosmology as cm
+
 class simple_halo:
-    def __init__(self, m200c, z, cosmo=None, sim_maxZ=200, sim_steps=500):
+    def __init__(self, m200c, z, cosmo=cm.OuterRim_params, sim_maxZ=200, sim_steps=500):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -54,23 +57,26 @@ class simple_halo:
         
         self.redshift = z
         self.m200c = m200c
-        if(cosmo is None): cosmo=WMAP7
         self.cosmo = cosmo
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
         self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c)
 
         # find simulation step equivalent to halo z (needed for bookkeeping by raytrace)
         a = np.linspace(1/(sim_maxZ+1), 1, sim_steps)
-        zz = 1/a-1
+        zall = 1/a-1
         # -10 steps here for buffer (halo must not be at shell boundary)
-        self.shell = (500 - np.searchsorted(zz, 0.3, sorter=np.argsort(zz))) - 10
+        self.shell = (500 - np.searchsorted(zall, z, sorter=np.argsort(zall))) - 10
          
         # these to be filled by populate_halo()
         self.profile_particles = None
         self.mpp = None
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
-        c_u, c_sig = mass_conc.child2018(m200c)
+        cosmo_colossus = colcos.setCosmology('OuterRim',
+                         {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
+                          'ns':0.963, 'relspecies':False})
+        c_u = mass_conc(m200c, '200c', z, model='child18')
+        c_sig = c_u-L/usr/local/opt/llvm/lib/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
 
@@ -99,7 +105,7 @@ class simple_halo:
         self.mpp = self.m200c / N
          
         
-    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False):
+    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
         """
         Computes three dimensional quantities for particles sampled along radial dimension. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -115,6 +121,7 @@ class simple_halo:
             If True, display a 3d plot of the particles to be output for visual inspection
         """
        
+        if(vis_output_dir is None): vis_output_dir = output_dir
         output_dir = '{}/Cutout{}'.format(output_dir, self.shell)
         if not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
@@ -154,13 +161,14 @@ class simple_halo:
             ax2 = f.add_subplot(122)
 
             ax.scatter(x, y, z, c='k', alpha=0.25)
-            ax.set_xlabel(r'$x\>[Mpc/h]$')
-            ax.set_ylabel(r'$y\>[Mpc/h]$')
-            ax.set_zlabel(r'$z\>[Mpc/h]$')
+            ax.set_xlabel(r'$x\>[Mpc/h]$', fontsize=16)
+            ax.set_ylabel(r'$y\>[Mpc/h]$', fontsize=16)
+            ax.set_zlabel(r'$z\>[Mpc/h]$', fontsize=16)
 
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
-            ax2.set_xlabel(r'$\theta\>[Mpc/h]$')
-            ax2.set_ylabel(r'$\phi\>[Mpc/h]$')
+            ax2.set_xlabel(r'$\theta\>[Mpc/h]$', fontsize=16)
+            ax2.set_ylabel(r'$\phi\>[Mpc/h]$', fontsize=16)
+            #plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
             plt.show()
 
         # write out all to binary
@@ -197,6 +205,6 @@ class simple_halo:
                    delimiter=',',header=cols)
     
 if __name__ == '__main__':
-    hh = simple_halo(m200c = 1e14, z=0.3)
-    hh.populate_halo(N=10000, rfrac=10)
-    hh.output_particles(vis_debug=False)
+    hh = simple_halo(m200c = 1e14, z = 0.3)
+    hh.populate_halo(N = 10000, rfrac = 6)
+    hh.output_particles(vis_debug=True)

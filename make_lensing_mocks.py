@@ -8,9 +8,14 @@ import cfuncs as cf
 from astropy.table import Table
 import sys
 
+# ------------------------- utilities ----------------------------------
+
 def printflush(s):
     print(s)
     sys.stdout.flush()
+
+# ------------------------------------------------------------------------
+
 
 def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
     """

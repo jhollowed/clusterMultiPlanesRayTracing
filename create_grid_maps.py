@@ -1,15 +1,17 @@
-import numpy as np
-from astropy.table import Table
-import h5py
-
-import cfuncs as cf
-import pdb
-import matplotlib.pyplot as plt
-import subprocess
 import os
 import pdb
-import glob
 import sys
+import glob
+import h5py
+import subprocess
+import numpy as np
+import matplotlib.pyplot as plt
+from astropy.table import Table
+
+import cfuncs as cf
+import cosmology as cm
+
+# ------------------------- utilities ----------------------------------
 
 def printflush(s):
     print(s)
@@ -27,6 +29,7 @@ class cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
 
+# ------------------------------------------------------------------------
 
 class grid_map_generator():
 
@@ -278,11 +281,11 @@ class grid_map_generator():
             
             xo1 = tp
             xc1 = (np.max(xo1)+np.min(xo1))*0.5
-            x1in = np.sin((xo1-xc1)/cf.apr) * xo3
+            x1in = np.sin((xo1-xc1)/cm.apr) * xo3
             
             xo2 = pp
             xc2 = (np.max(xo2)+np.min(xo2))*0.5
-            x2in = np.sin((xo2-xc2)/cf.apr) * xo3
+            x2in = np.sin((xo2-xc2)/cm.apr) * xo3
             
             #---------------------------------------
             # Calculate convergence maps
@@ -297,8 +300,8 @@ class grid_map_generator():
             if(image_out == True): image_out = 1
             else: image_out = 0
 
-            plane_width = 0.95 * (np.tan(bsz_arc/cf.apr/2) * xc3 * 2)
-            #plane_width = 1.0 * (np.tan(bsz_arc/cf.apr/2) * xc3 * 2)
+            plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * xc3 * 2)
+            #plane_width = 1.0 * (np.tan(bsz_arc/cm.apr/2) * xc3 * 2)
 
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
@@ -330,10 +333,10 @@ class grid_map_generator():
             #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
              
         # uncomment line below to use SPH rather than DTFE
-        #sdens_cmpch = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
+        #sdens_cmpch = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
        
         # subtract mean density from sdens_cmpch
-        rho_mean = cf.projected_rho_mean(lens_plane_bounds[0], lens_plane_bounds[1])
+        rho_mean = cm.projected_rho_mean(lens_plane_bounds[0], lens_plane_bounds[1])
         mean_diff = np.mean(sdens_cmpch) / rho_mean
         sdens_cmpch -= rho_mean
 
