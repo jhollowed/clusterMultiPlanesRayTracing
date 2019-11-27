@@ -1,9 +1,7 @@
 import os
+import sys
 import pdb
-import copy
 import scipy
-import seaborn
-import mass_conc
 import numpy as np
 from scipy import stats
 import matplotlib as mpl
@@ -11,15 +9,17 @@ from matplotlib import rc
 from astropy import units as u
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from colossus.cosmology import cosmology as colcos
 from astropy.cosmology import WMAP7, z_at_value
 from halotools.empirical_models import NFWProfile
-from colossus.concentration import concentration as mass_conc
+from colossus.halo.concentration import concentration as mass_conc
 rc('text', usetex=True)
 
+sys.path.append('..')
 import cosmology as cm
 
 class simple_halo:
-    def __init__(self, m200c, z, cosmo=cm.OuterRim, sim_maxZ=200, sim_steps=500):
+    def __init__(self, m200c, z, cosmo=cm.OuterRim_params, sim_maxZ=200, sim_steps=500):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -72,8 +72,11 @@ class simple_halo:
         self.mpp = None
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
+        cosmo_colossus = colcos.setCosmology('OuterRim',
+                         {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
+                          'ns':0.963, 'relspecies':False})
         c_u = mass_conc(m200c, '200c', z, model='child18')
-        c_sig = c/3
+        c_sig = c_u-L/usr/local/opt/llvm/lib/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
 

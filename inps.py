@@ -27,12 +27,10 @@ class inputs():
         #
         if(cosmo is not None): 
             cm.update_cosmology(cosmo)
-        else:
-            cosmo = cm.cosmo
+        self.cosmo = cm.cosmo
         if(sim is not None):
             cm.update_sim(sim)
-        else:
-            sim = cm.sim
+        self.sim = cm.sim
         
         #--------------------------------------------------------------------
         # cutout quantities
@@ -50,7 +48,7 @@ class inputs():
         self.mpp = self.sim['mpp']
 
         # trim to depth given by max_depth
-        comv = cosmo.comoving_distance
+        comv = self.cosmo.comoving_distance
         if(max_depth is not None):
             depth_mask = self.snapid_redshift <= max_depth
             self.snapid_list = self.snapid_list[depth_mask]

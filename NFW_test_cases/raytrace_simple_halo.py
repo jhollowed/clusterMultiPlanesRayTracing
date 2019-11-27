@@ -13,9 +13,9 @@ rc('text', usetex=True)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import inps
-#import create_grid_maps as gm
-#import raytrace_them_all  as rt
-#import make_lensing_mocks as mk
+import create_grid_maps as gm
+import raytrace_them_all  as rt
+import make_lensing_mocks as mk
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output')):
@@ -23,7 +23,7 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         # crate inputs instance
         print('reading inputs...') 
         halo_prop_file = '{}/properties.csv'.format(halo_dir)
-        halo_props = np.genfromtxt(self.halo_prop_file, delimiter=',', names=True)
+        halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
         inp = inps.inputs(halo_dir, out_dir, mean_lens_width = 70, 
                           halo_id='nfw_realization', min_depth=0.275, 
                           sim={'mpp':halo_props['mpp']})
