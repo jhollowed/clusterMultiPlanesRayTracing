@@ -54,7 +54,7 @@ def Da2(z1,z2):
 def projected_rho_mean(z1, z2):
     # return the mean density of the unvierse integrated across redshifts 
     # z1 and z2, in comoving (M_sun/h)(Mpc/h)^(-3)
-    pc0 = cosmo.critical_density(0).to(units.solMass/units.Mpc**3).value
+    pc0 = cosmo.critical_density(0).to(u.solMass/u.Mpc**3).value
     Om0 = cosmo.Om0
     rho_mean_0 = Om0 * pc0
     
