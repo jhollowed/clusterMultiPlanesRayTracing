@@ -7,8 +7,9 @@ import numpy as np
 import ctypes as ct
 import cosmology as cm
 
+gcc9 = True # this will have to be manually toggled for running on mac with gcc9, or running on alcf
 here = os.path.abspath(os.path.dirname(__file__))
-lib_path = os.path.join(here, 'lib/')
+lib_path = os.path.join(here, 'lib/lib_gcc{}/'.format(gcc9))
 vc = cm.vc
 G = cm.G
 apr = cm.apr
