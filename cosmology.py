@@ -46,8 +46,9 @@ def Dc(z):
     return cosmo.comoving_distance(z).value*cosmo.h
 def Dc2(z1,z2):
     return Dc(z2) - Dc(z2)
+
 def Da(z):
-    return Dc(z)/(1+z)
+    return cosmo.angular_diameter_distance(z).value*cosmo.h
 def Da2(z1,z2):
     return (Da(z2) - Da(z1))
 
@@ -61,3 +62,35 @@ def projected_rho_mean(z1, z2):
     d1 = cosmo.comoving_distance(z1).value
     d2 = cosmo.comoving_distance(z2).value
     return rho_mean_0 * (d2-d1) / cosmo.h
+
+def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
+    """
+    Computes the predicted LSST lensing source density, n_eff, in arcmin^-2, per Chang+2014
+    """
+
+    fiducial = {'a':1.24, 'z0':0.51, 'B':1.01, 'neff_raw':37, 'neff_blending':31, 'neff_masking':26}
+    optimistic = {'a':1.23, 'z0':0.59, 'B':1.05, 'neff_raw':48, 'neff_blending':36, 'neff_masking':31}
+    conservative = {'a':1.28, 'z0':0.41, 'B':0.97, 'neff_raw':24, 'neff_blending':22, 'neff_masking':18}
+    p = {'fiducial':fiducial, 'optimistic':optimistic, 'conservative':conservative}
+
+    a = p[case]['a']
+    z0 = p[case]['z0']
+    B = p[case]['B']
+    neff = p[case]['neff_{}'.format(sys)]
+
+    # integrate over P(z) to z=4
+    z_samp_all = np.linspace(0, 4, 10000)
+    Pz_all = z_samp_all **a * np.exp(-(z_samp_all/z0)**B)
+    tot_all = np.trapz(Pz_all, z_samp_all, np.diff(z_samp_all)[0])
+    
+    # integrate over the specified bounds
+    neff_bins = np.zeros(len(z_bin_edges)-1)
+    for i in range(len(z_bin_edges)-1):
+        z_samp = np.linspace(z_bin_edges[i], z_bin_edges[i+1], 10000)
+        Pz = z_samp**a * np.exp(-(z_samp/z0)**B)
+        tot = np.trapz(Pz, z_samp, np.diff(z_samp)[0])
+
+        # normalize P(z) and multiply by total neff
+        neff_bins[i] = tot/tot_all * neff
+
+    return neff_bins

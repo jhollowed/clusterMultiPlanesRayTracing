@@ -4,6 +4,7 @@ import sys
 import glob
 import h5py
 import subprocess
+import halo_inputs
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table
@@ -29,7 +30,7 @@ class cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
 
-# ------------------------------------------------------------------------
+# ======================================================================================================
 
 class grid_map_generator():
 
@@ -42,7 +43,8 @@ class grid_map_generator():
         Parameters
         ----------
         inp : halo_inputs instance
-            A class instance of halo_inputs giving run parameters and read/write directories
+            An object instance of a class from halo_inputs (either single_plane_inputs or multi_plane_inputs),
+            giving run parameters and read/write directories
         sdtfe_exe : string
             Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build. 
             Change `...SDTFE/cooley/dtfe` to `...SDTFE/mira/dtfe` if running in a BG/Q system.
@@ -53,33 +55,44 @@ class grid_map_generator():
             print statements will be suppressed. Defaults to `True`.
         '''
         
+        # for parallel runs where output is restricted to one rank
         if(stdout == False): 
             self.print = lambda s: None
             self.c_out = open(os.devnull, 'w')
         else: 
             self.print = printflush
             self.c_out = None
-
+        
+        # define dtfe exec and get inputs
         self.dtfe_exe = sdtfe_exe
         self.inp = inp
+        self.pdir = self.inp.input_prtcls_dir
+        self.multiplane = isinstance(inp, halo_inputs.multi_plane_inputs)
+        
+        # create outputs
         mode = 'w' if overwrite else 'a'
         self.out_file = h5py.File('{}/{}_{}_gmaps.hdf5'.format(
                                   self.inp.outputs_path, self.inp.halo_id, self.inp.zs0), mode)
         self.print('created out file {}'.format(self.out_file.filename))
-        self.nslices = self.inp.num_lens_planes
-        self.pdir = self.inp.input_prtcls_dir
-        self.pfx = glob.glob('{}/*Cutout*'.format(self.pdir))[0].split('Cutout')[0].split('/')[-1]
         
+        # set number of lens planes 
+        if(self.multiplane):
+            #pfx is lens plane directory prefix
+            self.pfx = glob.glob('{}/*Cutout*'.format(self.pdir))[0].split('Cutout')[0].split('/')[-1]
+            self.nslices = self.inp.num_lens_planes
+        else:
+            # single lens plane
+            self.nslices = 1
+        
+        self.xxp_los = np.array([])
+        self.yyp_los = np.array([])
+        self.zzp_los = np.array([])
         self.zp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.zp_los = np.hstack([self.zp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/redshift.{1}.bin'.format(
-                                      self.pdir,snapid,self.pfx), dtype = "f")])
-        self.xxp_los = None
-        self.yyp_los = None
-        self.zzp_los = None
-        self.tp_los = None
-        self.pp_los = None
+        self.tp_los = np.array([])
+        self.pp_los = np.array([])
+
+
+    # ------------------------------------------------------------------------------------------------------
 
 
     def read_cutout_particles(self):
@@ -87,38 +100,22 @@ class grid_map_generator():
         Read in the particle positions and redshifts given in the cutout directory pointed to by the 
         halo input object, `self.inp`.
         '''
-       
-        self.xxp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.xxp_los = np.hstack([self.xxp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/x.{1}.bin'.format(
-                                      self.pdir, snapid, self.pfx), dtype = "f")])
-        self.yyp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.yyp_los = np.hstack([self.yyp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/y.{1}.bin'.format(
-                                      self.pdir, snapid, self.pfx), dtype = "f")])
-        self.zzp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.zzp_los = np.hstack([self.zzp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/z.{1}.bin'.format(
-                                      self.pdir, snapid, self.pfx), dtype = "f")])
-        self.tp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.tp_los = np.hstack([self.tp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/theta.{1}.bin'.format(
-                                      self.pdir, snapid, self.pfx), dtype = "f")])
-        self.pp_los = np.array([])
-        for snapid in self.inp.snapid_list:
-            self.pp_los = np.hstack([self.pp_los, 
-                          np.fromfile('{0}/{2}Cutout{1}/phi.{1}.bin'.format(
-                                      self.pdir, snapid, self.pfx), dtype = "f")])
+        
+        columns = ['redshift', 'x', 'y', 'z', 'theta', 'phi']
+        arrs = [self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los]
+        
+        # particle data from all lens planes will be read into single flattened arrays for multi-plane case
+        for i in range(len(arrs)):
+            if(self.multiplane):
+                for snapid in self.inp.snapid_list:
+                    arrs[i] = np.hstack([arrs[i], np.fromfile('{0}/{2}Cutout{1}/{2}.{1}.bin'.format(
+                                                              self.pdir, snapid, self.pfx, columns[i]), dtype = "f")])
+            else: 
+                arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")])        
+        self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
 
-    
-    def plot_planes():
-        pass
-        #lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
-        #plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
+
+    # ------------------------------------------------------------------------------------------------------
 
 
     def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs=False):
@@ -144,16 +141,18 @@ class grid_map_generator():
         '''
         
         if(skip_sdens == False): 
-            assert self.zp_los is not None, "read_cutout_particles() must be called before DTFE"
+            assert len(self.zp_los != 0), "read_cutout_particles() must be called before DTFE"
 
         for i in range(self.nslices):
     
-            # get redshift bounds of lens plane
-            lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
-            if lens_plane_bounds[0] < self.inp.halo_redshift and \
-               lens_plane_bounds[1] > self.inp.halo_redshift:
-                   group_prefix = 'halo_plane'
-            else: group_prefix = 'plane'
+            # get redshift bounds of lens plane for multi-plane case
+            if(self.multiplane):
+                lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
+                if lens_plane_bounds[0] < self.inp.halo_redshift and \
+                   lens_plane_bounds[1] > self.inp.halo_redshift:
+                       group_prefix = 'halo_plane'
+                else: group_prefix = 'plane'
+            else: group_prefix = 'halo_plane'
     
             # set image output flag
             if(isinstance(output_dens_tiffs, float)):
@@ -164,7 +163,7 @@ class grid_map_generator():
             # compute lensing quantities on the grid from ~infinity (zs0)
             output_ar = self._grids_at_lens_plane(lens_plane_bounds, i, skip_sdens, output_dens_tiffs)
 
-            # write output to HDF5 
+            # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
             zs_ar = output_ar[1]
             kappa0_ar = output_ar[2]
@@ -173,7 +172,8 @@ class grid_map_generator():
             shear1_ar = output_ar[5]
             shear2_ar = output_ar[6]
      
-            zl_group = '{}{}'.format(group_prefix, i)
+            if(self.multiplane): zl_group = '{}{}'.format(group_prefix, i)
+            else: zl_group = group_prefix
             self.out_file.create_group(zl_group)
             self.out_file[zl_group]['zl'] = np.atleast_1d(zl_ar).astype('float32')
             self.out_file[zl_group]['zs'] = np.atleast_1d(zs_ar).astype('float32')
@@ -183,9 +183,12 @@ class grid_map_generator():
             self.out_file[zl_group]['shear1'] = shear1_ar.astype('float32')
             self.out_file[zl_group]['shear2'] = shear2_ar.astype('float32')
         self.out_file.close()
+    
+    
+    # ------------------------------------------------------------------------------------------------------
 
 
-    def _grids_at_lens_plane(self, lens_plane_bounds, idx, skip_sdens=False, image_out=False):
+    def _grids_at_lens_plane(self, idx, lens_plane_bounds=None, skip_sdens=False, image_out=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity for the lens plane defined as the projected volume between
@@ -193,12 +196,13 @@ class grid_map_generator():
        
         Parameters
         ----------
-        lens_plane_bounds : 2-element list
-            The redshift bounds of this lens plane; used to select particles in the plane
-            for density estimation.
-
         idx : int
             integer index of this lens plane (lowest redhisft plane assumed to be index 0)
+        
+        lens_plane_bounds : 2-element list, optional
+            The redshift bounds of this lens plane; used to select particles in the plane
+            for density estimation. This is only optional in the single-plane usage case, in
+            which case the value defaults to None.
             
         skip_sdens : boolean, optional
             Whether or not to attempt to skip the DTFE calculation by reading density outputs
@@ -222,9 +226,12 @@ class grid_map_generator():
         # write out/read in denisty file
         dtfe_file = '{}/plane{}_dtfe_input.bin'.format(self.inp.dtfe_path, idx)
         
-        # read in particle data
+        # read in particle data, masking by desired lens plane boundaries in the multi-plane case
         # Note: zp, zl, zs for particles, lens, sources
-        plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
+        if(self.multiplane):
+            plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
+        else:
+            plane_mask = np.ones(len(self.zp_los))
         zp = self.zp_los[plane_mask]
         mpin = np.ones(len(zp))*self.inp.mpp
         zs = self.inp.zs0
@@ -232,23 +239,17 @@ class grid_map_generator():
         bsz_mpc = self.inp.bsz_mpc
         bsz_arc = self.inp.bsz_arc
  
-        # check has at least minimum particles, else return empty plane
+        # check that plane has at least minimum particles, else return empty plane
+        zl_median = np.median(zp)
         if len(zp) < 10:
-            zl_median = np.sum(lens_plane_bounds)/2
             empty_plane = np.zeros((ncc, ncc), dtype=np.float32)
             return zl_median, zs, empty_plane, empty_plane, empty_plane, empty_plane, empty_plane
-        else:
-            zl_median = np.median(zp)
              
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
-       
-        #if(np.min(zp) < self.inp.halo_props['halo_redshift'] and 
-        #   self.inp.halo_props['halo_redshift'] < np.max(zp)):
-        #    noskip=True
-        #else:
-        #    noskip=False
-        
+
+        # ---------------------- call DTFE exec for density estimation ---------------------------
+
         if(skip_sdens == True and noskip == False): 
             try:
                 # read in density result
@@ -268,8 +269,7 @@ class grid_map_generator():
             tp = self.tp_los[plane_mask]
             pp = self.pp_los[plane_mask]
             self.print('{} particles'.format(len(xp)))
-
-           
+   
             # compute fov-centric coordinates:
             # x3 in comoving Mpc/h along the LOS
             # x1 azimuthal projected distance in comoving Mpc/h
@@ -287,12 +287,7 @@ class grid_map_generator():
             xc2 = (np.max(xo2)+np.min(xo2))*0.5
             x2in = np.sin((xo2-xc2)/cm.apr) * xo3
             
-            #---------------------------------------
-            # Calculate convergence maps
-            #
-            
             # ------ do density estiamtion via system call to SDTFE exe ------
-
             # x, y, z in column major
             dtfe_input_array = np.ravel(np.vstack([x1in, x2in, x3in]))
             dtfe_input_array.astype('f').tofile(dtfe_file)
@@ -301,8 +296,6 @@ class grid_map_generator():
             else: image_out = 0
 
             plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * xc3 * 2)
-            #plane_width = 1.0 * (np.tan(bsz_arc/cm.apr/2) * xc3 * 2)
-
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
             
@@ -327,7 +320,7 @@ class grid_map_generator():
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
             sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
 
-            # make sure we can recover particle mass
+            # make sure we can recover particle mass from the density to 10%
             inferred_mpp = np.sum(sdens_cmpch * (plane_width/ncc)**2) / len(x1in)
             fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
             #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
@@ -336,29 +329,30 @@ class grid_map_generator():
         #sdens_cmpch = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
        
         # subtract mean density from sdens_cmpch
-        rho_mean = cm.projected_rho_mean(lens_plane_bounds[0], lens_plane_bounds[1])
+        rho_mean = cm.projected_rho_mean(np.min(zp), np.max(zp))
         mean_diff = np.mean(sdens_cmpch) / rho_mean
         sdens_cmpch -= rho_mean
-
         self.print('Measured/theory mean is {}'.format(mean_diff))
 
+        # ----------------------- convergence maps -----------------------------
 
-        # compute convergence...
-        # 1/a^2 in sdens_cmpch scales to proper area
-        # sigma_crit in proper (M_sun/h) / (Mpc/h)**2
+        # 1/a^2 in sdens_cmpch scales to proper area --> should I be doing this?
+        # sigma_crit in proper (M_sun/h) / (Mpc/h)**2 --> ??
         self.print('computing convergence') 
         kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
          
-        #---------------------------------------
-        # Calculate deflection maps
-        #
+        # ----------------------- defelection maps ------------------------------
 
-        if lens_plane_bounds[0] < self.inp.halo_redshift and \
-           lens_plane_bounds[1] > self.inp.halo_redshift:
-            # The Snapshot contains the main halo.
-            BoundaryCondition = "Isolated"
+        if(self.multiplane):
+            if lens_plane_bounds[0] < self.inp.halo_redshift and \
+               lens_plane_bounds[1] > self.inp.halo_redshift:
+                # The Snapshot contains the main halo.
+                BoundaryCondition = "Isolated"
+            else:
+                BoundaryCondition = "Periodic"
         else:
-            BoundaryCondition = "Periodic"
+                # Single-lens plane case; plane is assumed to contain a halo.
+                BoundaryCondition = "Isolated"
 
         if BoundaryCondition == "Periodic":
             # if mean(mass) ~ mean(Universe)
@@ -366,12 +360,8 @@ class grid_map_generator():
         elif BoundaryCondition == "Isolated":
             # if mean(mass) >> mean(Universe)
             alpha1, alpha2 = cf.call_kappa0_to_alphas(kappa, self.inp.bsz_arc, ncc)
-        else:
-            self.print("You should define the Boundary Condition first!!!")
         
-        #---------------------------------------
-        # Calculate higher order lensing maps
-        #
+        # ------------------ higher-order lensing maps ----------------------------
 
         self.print('computing defelctions and shears')
         al11, al12 = np.gradient(alpha1, self.inp.dsx_arc)

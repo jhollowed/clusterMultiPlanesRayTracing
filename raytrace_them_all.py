@@ -1,8 +1,8 @@
 import sys
 import pdb
 import glob
-import inps
 import h5py
+import halo_inputs
 import numpy as np
 import cfuncs as cf
 import cosmology as cm
@@ -13,6 +13,8 @@ from astropy.table import Table
 def printflush(s):
     print(s)
     sys.stdout.flush()
+
+# ======================================================================================================
 
 class ray_tracer():
 
@@ -26,7 +28,8 @@ class ray_tracer():
         Parameters
         ----------
         inp : halo_inputs instance
-            A class instance of halo_inputs giving run parameters and read/write directories
+            An object instance of a class from halo_inputs (either single_plane_inputs or multi_plane_inputs),
+            giving run parameters and read/write directories
         overwrite : bool
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         stdout : bool
@@ -37,7 +40,11 @@ class ray_tracer():
         if(stdout == False): self.print = lambda s: None
         else: self.print = printflush
         
+        # get inputs
         self.inp = inp
+        self.multiplane = isinstance(inp, halo_inputs.multi_plane_inputs)
+        
+        # define outputs
         self.kappa_zs0 = None
         self.alpha1_zs0 = None
         self.alpha2_zs0 = None
@@ -59,58 +66,63 @@ class ray_tracer():
         assert len(gmaps_path)==1, "Exactly one raytrace file must be present in the target path"
         self.print('read lensing maps from {}'.format(gmaps_path[0]))
         
+        # get lens planes and median redshifts
         gmaps_file = h5py.File(gmaps_path[0])
         lens_planes = np.array(list(gmaps_file.keys()))
         lens_zs = np.atleast_1d(np.squeeze([gmaps_file[plane]['zl'][:] for plane in lens_planes]))
         idx = np.argsort(lens_zs)
         self.lens_planes = lens_planes[idx]
         
+        # read in grid maps
         self.kappa_zs0 = np.array([gmaps_file[plane]['kappa0'][:] for plane in self.lens_planes])
         self.alpha1_zs0 = np.array([gmaps_file[plane]['alpha1'][:] for plane in self.lens_planes])
         self.alpha2_zs0 = np.array([gmaps_file[plane]['alpha2'][:] for plane in self.lens_planes])
         self.shear1_zs0 = np.array([gmaps_file[plane]['shear1'][:] for plane in self.lens_planes])
         self.shear2_zs0 = np.array([gmaps_file[plane]['shear2'][:] for plane in self.lens_planes])
-
         gmaps_file.close()
     
-        # get higher redshift bound of each lens plane
-        self.z_lens_planes = self.inp.lens_plane_edges[1:]
-        self.zmedian_lens_planes = lens_zs[idx]
-        assert len(self.z_lens_planes) == len(self.zmedian_lens_planes), ( 
-               "mismatch between cutout and gmaps lens planes!")
+        # get higher redshift bound of each lens plane to place sources for the multi-plane case
+        # (else these vars undefined)
+        if(self.multiplane):
+            self.z_lens_planes = self.inp.lens_plane_edges[1:]
+            self.zmedian_lens_planes = lens_zs[idx]
+            assert len(self.z_lens_planes) == len(self.zmedian_lens_planes), ( 
+                   "mismatch between cutout and gmaps lens planes!")
+    
+            
+    # ------------------------------------------------------------------------------------------------------
    
 
     def raytrace_grid_maps_for_zs(self, ZS=None):
         """
         Performs ray tracing at the source planes at redshift ZS. Note: the output files will be closed after
         this function executes, so if needed to be called again, this object will need to be re-initialized.
+        Also note that the ray-tracing resolution is set to match that of the density estaimation (there will)
+        be a ray traced back to the image plane per-pixel of the density map).
 
         Parameters
         ----------
-        ZS : float array
+        ZS : float array, optional
             redshifts at which to perform ray tracing on the grid points. If None, then use the 
             higher redshift edge of each lens plane in the grid maps as a source plane. Defaults 
-            to None.
-        max_planes : int
-            maximum number of planes about the halo plane to include in the ray tracing (e.g. if
-            max_planes = 4, then include at most four foreground planes and four background planes
-            in the calculation. Sources will still be placed to the full depth of the cutout, but
-            will be separated by empty space beyond the nine total included selected planes.
+            to None. For the single-plane use case, this must be passed and is no longer optional
         """
         
         self.print('\n ---------- creating ray trace maps for halo {} ---------- '.format(self.inp.halo_id))        
         assert self.z_lens_planes is not None, "read_grid_maps_zs0() must be called before ray-tracing"
         
+        # define source redshifts at the lens plane edges if not supplied
         ZS0 = self.inp.zs0
         ncc = self.inp.nnn
-        if(ZS is None):
+        if(ZS is None and self.multiplane):
             ZS = self.z_lens_planes
+        elif(ZS is None and not self.multiplane):
+            raise ValueError('ZS must be specified under the sinlge-plane usage!')
 
         # loop over source redshifts
         for i in range(len(ZS)):
-            
 
-            # Rescale Lens Data (zs0->zs)
+            # ------------------------ rescale Lens Data (zs0->zs) --------------------------
             zs = ZS[i]
             zl_array = self.zmedian_lens_planes[self.zmedian_lens_planes<=(zs)]
             nzlp = len(zl_array)
@@ -122,17 +134,18 @@ class ray_tracer():
             shear2_array = np.zeros((nzlp,ncc,ncc))
 
             for j in range(nzlp):
-                rescale = cm.Da(ZS0)/cm.Da2(zl_array[j],ZS0)*cm.Da2(zl_array[j],zs)/cm.Da(zs)
+                rescale = cm.Da(ZS0)/cm.Da2(zl_array[j],ZS0)*cm.Da2(zl_array[j],zs)/cm.Da(zs) # --> check
                 kappa0_array[j] = self.kappa_zs0[j]*rescale
                 alpha1_array[j] = self.alpha1_zs0[j]*rescale
                 alpha2_array[j] = self.alpha2_zs0[j]*rescale
                 shear1_array[j] = self.shear1_zs0[j]*rescale
                 shear2_array[j] = self.shear2_zs0[j]*rescale
 
-            # Ray-tracing
+            # ---------------------------- ray-tracing ---------------------------------------
+
             self.print('-------- ray tracing at source plane {:.3f} --------'.format(zs))
             af1, af2, kf0, sf1, sf2 = self._ray_tracing_all(alpha1_array, alpha2_array, kappa0_array,
-                                                           shear1_array, shear2_array, zl_array,zs)
+                                                            shear1_array, shear2_array, zl_array,zs)
             self.print('max values:')
             self.print("kf0 = {}".format(np.max(kf0)))
             self.print("af1 = {}".format(np.max(af1)))
@@ -151,18 +164,21 @@ class ray_tracer():
             self.out_file[zs_group]['shear2'] = sf2.astype('float32')
             
             # debugging; remove this later
-            self.out_file[zs_group]['kappa0_array'] = kappa0_array
-            self.out_file[zs_group]['alpha1_array'] = alpha1_array
-            self.out_file[zs_group]['alpha2_array'] = alpha2_array
-            self.out_file[zs_group]['shear1_array'] = shear1_array
-            self.out_file[zs_group]['shear2_array'] = shear2_array
+            #self.out_file[zs_group]['kappa0_array'] = kappa0_array
+            #self.out_file[zs_group]['alpha1_array'] = alpha1_array
+            #self.out_file[zs_group]['alpha2_array'] = alpha2_array
+            #self.out_file[zs_group]['shear1_array'] = shear1_array
+            #self.out_file[zs_group]['shear2_array'] = shear2_array
 
         self.out_file.close()
         self.print('done')
+    
+    
+    # ------------------------------------------------------------------------------------------------------
 
 
     def _ray_tracing_all(self, alpha1_array,alpha2_array, kappas_array, shear1_array, shear2_array, zl_array, zs):
-        
+    
         xx1 = self.inp.xi1
         xx2 = self.inp.xi2
         dsi = self.inp.dsx_arc
@@ -176,20 +192,19 @@ class ray_tracer():
 
         for i in range(nlpl):
             xj1,xj2 = self._rec_read_xj(alpha1_array,alpha2_array,zl_array,zs,i+1)
-            #------------------
+            
             alpha1_tmp = cf.call_inverse_cic(alpha1_array[i],0.0,0.0,xj1,xj2,dsi)
             af1 = af1 + alpha1_tmp
             alpha2_tmp = cf.call_inverse_cic(alpha2_array[i],0.0,0.0,xj1,xj2,dsi)
             af2 = af2 + alpha2_tmp
-            #------------------
+            
             kappa_tmp = cf.call_inverse_cic(kappas_array[i],0.0,0.0,xj1,xj2,dsi)
             kf0 = kf0 + kappa_tmp
-            #------------------
+            
             shear1_tmp = cf.call_inverse_cic(shear1_array[i],0.0,0.0,xj1,xj2,dsi)
             sf1 = sf1 + shear1_tmp
             shear2_tmp = cf.call_inverse_cic(shear2_array[i],0.0,0.0,xj1,xj2,dsi)
             sf2 = sf2 + shear2_tmp
-            #------------------
 
         pad = self.inp.npad
         kf0[:pad,:] = 0.0;kf0[-pad:,:] = 0.0;kf0[:,:pad] = 0.0;kf0[:,-pad:] = 0.0;
@@ -197,6 +212,9 @@ class ray_tracer():
         sf2[:pad,:] = 0.0;sf2[-pad:,:] = 0.0;sf2[:,:pad] = 0.0;sf2[:,-pad:] = 0.0;
 
         return af1, af2, kf0, sf1, sf2
+
+    
+    # ------------------------------------------------------------------------------------------------------
 
 
     def _rec_read_xj(self, alpha1_array,alpha2_array,zln,zs,n):

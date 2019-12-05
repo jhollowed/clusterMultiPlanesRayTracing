@@ -1,10 +1,10 @@
 import sys
 import pdb
-import inps
 import time
 import glob
 import h5py as h
 import numpy as np
+import halo_inputs
 from mpi4py import MPI
 
 import create_grid_maps as gm
@@ -16,7 +16,8 @@ def parallel_raytrace(cutout_dir = './data/lenses/prtcls',
     
     # toggle this on to test communication without actually creating lensing maps
     dry_run = False
-    # toggle this on to rebuild lensing maps even if files already exist
+    
+    # toggle these on to rebuild lensing maps even if files already exist
     overwrite_gmaps = True
     overwrite_raytrace = True
     overwrite_mocks = True
@@ -74,7 +75,7 @@ def parallel_raytrace(cutout_dir = './data/lenses/prtcls',
         
         cutout = this_rank_halos[i]
         output = '{}/{}'.format(out_dir, cutout.split('/')[-1])
-        inp = inps.inputs(cutout, output, mean_lens_width = 85)
+        inp = inps.multi_plane_inputs(cutout, output, mean_lens_width = 85)
         
         if(rank==0): print('\n\n---------- working on halo {}/{} ----------'.format(i+1, len(this_rank_halos)))
         
@@ -155,7 +156,7 @@ def vis_outputs(cutout_dir = './data/lenses/prtcls', lensing_dir = './output',
         
         lensed_cutout = all_mocks[i]
         particles = glob.glob('{}/{}'.format(cutout_dir, lensed_cutout.split('/')[-1]))[0] 
-        inp = inps.inputs(particles, lensed_cutout, mean_lens_width = 85)
+        inp = inps.multi_plane_inputs(particles, lensed_cutout, mean_lens_width = 85)
         
         print('\n\n---------- working on halo {}/{} ----------'.format(i+1, len(all_mocks)))
        
