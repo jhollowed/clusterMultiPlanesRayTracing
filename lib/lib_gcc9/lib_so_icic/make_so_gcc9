@@ -1,0 +1,2 @@
+gcc-9 -Wall -Ofast -I/usr/local/include -L/usr/local/lib -fopenmp -fPIC -c rtf.c
+gcc-9 -shared -I/usr/local/include -L/usr/local/lib -fopenmp rtf.o -o ./librtf.so

@@ -1,0 +1,3 @@
+gcc-9 -Wall -Ofast -I/usr/local/include -L/usr/local/lib -fopenmp -fPIC -c *.c
+gcc-9 -shared -I/usr/local/include -L/usr/local/lib -fopenmp *.o -o ./libsphsdens.so
+rm ./*.o

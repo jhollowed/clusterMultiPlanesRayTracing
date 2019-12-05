@@ -1,0 +1,6 @@
+#gcc-9 -Wall -fPIC -c rtf.c
+#gcc-9 -shared rtf.o -o ./librtf.so
+
+gcc-9 -Wall -Ofast -I/usr/local/include -L/usr/local/lib -fopenmp -fPIC -c ./cic_omp.c
+gcc-9 -shared -I/usr/local/include -L/usr/local/lib -fopenmp ./cic_omp.o -o ./libcic.so
+rm ./*.o

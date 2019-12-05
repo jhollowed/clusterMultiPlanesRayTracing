@@ -1,0 +1,7 @@
+#gcc-9 -Wall -fPIC -c rtf.c
+#gcc-9 -shared rtf.o -o ./librtf.so
+
+#gcc-9 -Wall -Ofast -fopenmp -fPIC -c ./ngp_omp.c
+gcc-9 -Wall -I/usr/local/include -L/usr/local/lib -fopenmp -fPIC -c ./ngp_omp.c
+gcc-9 -shared -I/usr/local/include -L/usr/local/lib -fopenmp ./ngp_omp.o -o ./libngp.so
+rm ./*.o

@@ -1,4 +1,3 @@
-
 #include "malloc.h"
 
 void determine_hsml(void);

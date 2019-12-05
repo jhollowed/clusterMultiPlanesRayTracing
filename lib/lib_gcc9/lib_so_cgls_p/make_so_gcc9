@@ -1,0 +1,3 @@
+gcc-9 -Wall -O2 -I/usr/local/include -L/usr/local/lib -c -fPIC ./fft_convolve.c ./lensing_funcs.c -lfftw3  -lm
+gcc-9 -shared -I/usr/local/include -L/usr/local/lib ./fft_convolve.o ./lensing_funcs.o -lfftw3 -lm -o libglsg_p.so 
+rm *.o
