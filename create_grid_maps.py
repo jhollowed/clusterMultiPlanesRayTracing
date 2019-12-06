@@ -111,7 +111,7 @@ class grid_map_generator():
                     arrs[i] = np.hstack([arrs[i], np.fromfile('{0}/{2}Cutout{1}/{2}.{1}.bin'.format(
                                                               self.pdir, snapid, self.pfx, columns[i]), dtype = "f")])
             else: 
-                arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")])        
+                arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
 
 
@@ -152,7 +152,9 @@ class grid_map_generator():
                    lens_plane_bounds[1] > self.inp.halo_redshift:
                        group_prefix = 'halo_plane'
                 else: group_prefix = 'plane'
-            else: group_prefix = 'halo_plane'
+            else:
+                lens_plane_bounds = None
+                group_prefix = 'halo_plane'
     
             # set image output flag
             if(isinstance(output_dens_tiffs, float)):
@@ -161,7 +163,7 @@ class grid_map_generator():
                 raise Exception('`output_dens_tiffs must either be a float or a bool`')
             
             # compute lensing quantities on the grid from ~infinity (zs0)
-            output_ar = self._grids_at_lens_plane(lens_plane_bounds, i, skip_sdens, output_dens_tiffs)
+            output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, skip_sdens, output_dens_tiffs)
 
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
@@ -231,7 +233,7 @@ class grid_map_generator():
         if(self.multiplane):
             plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
         else:
-            plane_mask = np.ones(len(self.zp_los))
+            plane_mask = np.ones(len(self.zp_los), dtype=bool)
         zp = self.zp_los[plane_mask]
         mpin = np.ones(len(zp))*self.inp.mpp
         zs = self.inp.zs0

@@ -5,8 +5,8 @@ import glob
 import halo_inputs
 import numpy as np
 import pylab as pl
-import inps as inp
 import cfuncs as cf
+import halo_inputs as inp
 from astropy.table import Table
 from cosmology import Nz_Chang2014
 
@@ -135,13 +135,13 @@ class lensing_mock_generator():
             ys1_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
             ys2_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
         
-        elif(type(nsrcs)==int and n_places='grid'):
+        elif(type(nsrcs)==int and n_places=='grid'):
             grid = np.meshgrid(np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)), 
                                np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)))
             ys1_arrays = np.array([np.ravel(grid[0]) for i in range(len(zs))])
             ys2_arrays = np.array([np.ravel(grid[1]) for i in range(len(zs))])
         
-        elif(type(nsrcs)==int and n_places='rand'):
+        elif(type(nsrcs)==int and n_places=='rand'):
             ys1_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
             ys2_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 

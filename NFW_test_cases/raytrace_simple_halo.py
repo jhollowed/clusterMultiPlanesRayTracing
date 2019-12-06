@@ -12,10 +12,14 @@ import matplotlib.pyplot as plt
 rc('text', usetex=True)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import inps
+import halo_inputs as inps
 import create_grid_maps as gm
-import raytrace_them_all  as rt
+import raytrace  as rt
 import make_lensing_mocks as mk
+
+
+# ======================================================================================
+
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output')):
@@ -24,8 +28,7 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         print('reading inputs...') 
         halo_prop_file = '{}/properties.csv'.format(halo_dir)
         halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
-        inp = inps.inputs(halo_dir, out_dir, mean_lens_width = 70, 
-                          halo_id='nfw_realization', min_depth=0.275, 
+        inp = inps.single_plane_inputs(halo_dir, out_dir, halo_id='nfw_realization',
                           sim={'mpp':halo_props['mpp']})
        
         # make grid maps
@@ -34,7 +37,8 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
                                        overwrite=True)
         gm_gen.read_cutout_particles()
         gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=True)
- 
+        
+        return
         print('raytracing from z=1...')
         rt_gen = rt.ray_tracer(inp, overwrite=True)
         rt_gen.read_grid_maps_zs0()
@@ -43,6 +47,9 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
         mock_gen.read_raytrace_planes()
         mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 6400)
+
+
+# ------------------------------------------------------------------------------------------
 
 
 def vis_outputs(halo_dir = os.path.abspath('./nfw_particle_realization'), 
@@ -106,6 +113,9 @@ def vis_outputs(halo_dir = os.path.abspath('./nfw_particle_realization'),
     plt.show()
 
 
+# ------------------------------------------------------------------------------------------
+
+
 def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, ax, zs=None, log=True):
      
     g1 = shear1
@@ -115,7 +125,6 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, ax, zs=None, log=True):
         kappa[np.isnan(kappa)] = 0
     mink = min(np.ravel(kappa)[np.ravel(kappa) != 0])
     
-    #---------------------------------------------------------------------
     extent=np.array([-1, 1, -1, 1])*inp.bsz_arc/2
     ax.imshow(np.log((kappa.clip(min=1e-3)).T),aspect='equal',cmap=plt.cm.viridis, origin='higher',
               extent=extent)
@@ -137,5 +146,9 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, ax, zs=None, log=True):
     for i in range(len(g1)):
         ax.plot([st_x[i],ed_x[i]],[st_y[i],ed_y[i]],'w-',linewidth=0.75)
     
+
+# ======================================================================================
+
+
 if __name__ == '__main__':
     halo_raytrace()

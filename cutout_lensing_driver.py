@@ -8,7 +8,7 @@ import halo_inputs
 from mpi4py import MPI
 
 import create_grid_maps as gm
-import raytrace_them_all  as rt
+import raytrace  as rt
 import make_lensing_mocks as mk
 
 def parallel_raytrace(cutout_dir = './data/lenses/prtcls', 

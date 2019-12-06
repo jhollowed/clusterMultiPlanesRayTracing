@@ -2,14 +2,18 @@
 # Call C functions
 #
 import sys,os
-import inps as inp
+import halo_inputs as inp
 import numpy as np
 import ctypes as ct
 import cosmology as cm
 
-gcc9 = True # this will have to be manually toggled for running on mac with gcc9, or running on alcf
+# this will have to be manually toggled for running on mac with gcc9, or running on alcf
+gcc9 = True
+gcc9_str = ''
+if gcc9: gcc9_str = '9'
+
 here = os.path.abspath(os.path.dirname(__file__))
-lib_path = os.path.join(here, 'lib/lib_gcc{}/'.format(gcc9))
+lib_path = os.path.join(here, 'lib/lib_gcc{}/'.format(gcc9_str))
 vc = cm.vc
 G = cm.G
 apr = cm.apr

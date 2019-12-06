@@ -18,8 +18,12 @@ rc('text', usetex=True)
 sys.path.append('..')
 import cosmology as cm
 
+
+# =========================================================================================
+
+
 class simple_halo:
-    def __init__(self, m200c, z, cosmo=cm.OuterRim_params, sim_maxZ=200, sim_steps=500):
+    def __init__(self, m200c, z, cosmo=cm.OuterRim_params):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -38,12 +42,6 @@ class simple_halo:
             with location and scale suggested by the M-c relation of Child+2018
         cosmo : object, optional
             An AstroPy cosmology object. Defaults to WMAP7.
-        sim_maxZ : float, optional
-            The maximum redshift of a hypothetical simulation run, from which to compute
-            the lightcone shell equivalent to the input redshift
-        sim_steps : int, optional
-            The number of timesteps from sim_maxZ to z=0, from which to compute
-            the lightcone shell equivalent to the input redshift
         
         Methods
         -------
@@ -60,13 +58,7 @@ class simple_halo:
         self.cosmo = cosmo
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
         self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c)
-
-        # find simulation step equivalent to halo z (needed for bookkeeping by raytrace)
-        a = np.linspace(1/(sim_maxZ+1), 1, sim_steps)
-        zall = 1/a-1
-        # -10 steps here for buffer (halo must not be at shell boundary)
-        self.shell = (500 - np.searchsorted(zall, z, sorter=np.argsort(zall))) - 10
-         
+ 
         # these to be filled by populate_halo()
         self.profile_particles = None
         self.mpp = None
@@ -78,6 +70,9 @@ class simple_halo:
         c_u = mass_conc(m200c, '200c', z, model='child18')
         c_sig = c_u/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
+
+
+    # -----------------------------------------------------------------------------------------------
 
 
     def populate_halo(self, N=10000, rfrac=1):
@@ -103,6 +98,9 @@ class simple_halo:
                                                           halo_radius = rfrac*self.r200c)
         self.profile_particles = r
         self.mpp = self.m200c / N
+    
+    
+    # -----------------------------------------------------------------------------------------------
          
         
     def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
@@ -122,7 +120,6 @@ class simple_halo:
         """
        
         if(vis_output_dir is None): vis_output_dir = output_dir
-        output_dir = '{}/Cutout{}'.format(output_dir, self.shell)
         if not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
 
@@ -172,38 +169,44 @@ class simple_halo:
             plt.show()
 
         # write out all to binary
-        x.astype('f').tofile('{}/x.{}.bin'.format(output_dir, self.shell))
-        y.astype('f').tofile('{}/y.{}.bin'.format(output_dir, self.shell))
-        z.astype('f').tofile('{}/z.{}.bin'.format(output_dir, self.shell))
-        theta_sky.astype('f').tofile('{}/theta.{}.bin'.format(output_dir, self.shell))
-        phi_sky.astype('f').tofile('{}/phi.{}.bin'.format(output_dir, self.shell))
-        redshift.astype('f').tofile('{}/redshift.{}.bin'.format(output_dir, self.shell))
+        x.astype('f').tofile('{}/x.bin'.format(output_dir))
+        y.astype('f').tofile('{}/y.bin'.format(output_dir))
+        z.astype('f').tofile('{}/z.bin'.format(output_dir))
+        theta_sky.astype('f').tofile('{}/theta.bin'.format(output_dir))
+        phi_sky.astype('f').tofile('{}/phi.bin'.format(output_dir))
+        redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
         self._write_prop_file(output_dir)
+    
+    
+    # -----------------------------------------------------------------------------------------------
 
 
     def _write_prop_file(self, output_dir='./nfw_particle_realization'):
         """
-        Writes a csv file contining the halo properties needed by this package's  ray tracing modules
+        Writes a csv file contining the halo properties needed by this package's ray tracing modules
         A few values are arbitrary here, since we have a free NFW ball floating in space  with no 
         LOS structure-- the boxRadius is set to be 500arcsec, which corresponds to a physical scale 
-        of ~3.4 comoving Mpc/h. The halo_lc_shell is needed for bookkeeping purposes in the raytracing
-        input processing module, and is computed in the constructor according to an OuterRim-like
-        setup (by default).
+        of ~3.4 comoving Mpc/h.
 
         Parameters
         ----------
         output_dir : string
             The desired output location for the property file 
         """
-        cols = '#halo_redshift, halo_lc_shell, sod_halo_mass, sod_halo_radius, '\
+        cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, '\
                'sod_halo_cdelta, sod_halo_cdelta_error, halo_lc_x, halo_lc_y, halo_lc_z, '\
                'boxRadius_Mpc, boxRadius_arcsec, mpp'
-        props = np.array([self.redshift, self.shell, self.m200c, self.r200c, self.c, 
+        props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
                           0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
-        np.savetxt('{}/../properties.csv'.format(output_dir), [props], 
-                   fmt='%.6f,%i,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 
+        np.savetxt('{}/properties.csv'.format(output_dir), [props], 
+                   fmt='%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 
                    delimiter=',',header=cols)
-    
+
+
+# ======================================================================================================
+
+
+# default configuration
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z = 0.3)
     hh.populate_halo(N = 10000, rfrac = 6)
