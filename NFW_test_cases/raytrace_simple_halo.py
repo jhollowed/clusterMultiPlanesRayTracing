@@ -22,7 +22,8 @@ import make_lensing_mocks as mk
 
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
-                  out_dir = os.path.abspath('./lensing_output')):
+                  out_dir = os.path.abspath('./lensing_output'), 
+                  sdtfe_exec = '/home/hollowed/repos/SDTFE/cooley/dtfe'):
     
         # crate inputs instance
         print('reading inputs...') 
@@ -33,8 +34,7 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
        
         # make grid maps
         print('making grid maps...')
-        gm_gen = gm.grid_map_generator(inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', 
-                                       overwrite=True)
+        gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
         gm_gen.read_cutout_particles()
         gm_gen.create_grid_maps_for_zs0(skip_sdens=True, output_dens_tiffs=True)
         
