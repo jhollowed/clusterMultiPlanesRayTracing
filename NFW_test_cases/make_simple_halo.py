@@ -57,8 +57,8 @@ class simple_halo:
         self.m200c = m200c
         self.cosmo = cosmo
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
-        self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c)
- 
+        self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c) #physical Mpc/h
+
         # these to be filled by populate_halo()
         self.profile_particles = None
         self.mpp = None
@@ -181,21 +181,35 @@ class simple_halo:
     # -----------------------------------------------------------------------------------------------
 
 
-    def _write_prop_file(self, output_dir='./nfw_particle_realization'):
+    def _write_prop_file(self, R=6, output_dir='./nfw_particle_realization'):
         """
         Writes a csv file contining the halo properties needed by this package's ray tracing modules
-        A few values are arbitrary here, since we have a free NFW ball floating in space  with no 
-        LOS structure-- the boxRadius is set to be 500arcsec, which corresponds to a physical scale 
-        of ~3.4 comoving Mpc/h.
+        The boxRadius can really be anything, since the space around the NFW ball is empty-- here, we
+        set it to correspond to a transverse comoving distance equal to R*r200 at the redshift of the
+        halo.
 
         Parameters
         ----------
-        output_dir : string
-            The desired output location for the property file 
+        R : float, optional
+            The fraction of r200c to set the field of view width. Defaults to 6.
+
+        output_dir : string, optional
+            The desired output location for the property file. Defaults to a subdir created at the 
+            location of this module.
         """
+
+        # find the angular scale corresponding to fov_r200c * r200c proper Mpc/h at the redshift of the halo
+        boxRadius_Mpch = R*self.r200c
+        trans_Mpch_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3/self.cosmo.h)/60
+        boxRadius_arcsec = boxRadius_Mpch/trans_Mpch_per_arcsec
+
         cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, '\
                'sod_halo_cdelta, sod_halo_cdelta_error, halo_lc_x, halo_lc_y, halo_lc_z, '\
                'boxRadius_Mpc, boxRadius_arcsec, mpp'
+        #props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
+        #                  0, 0, 0, self.halo_r, boxRadius_Mpch, boxRadius_arcsec, self.mpp])
+        
+        # temporary VVV
         props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
                           0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
         np.savetxt('{}/properties.csv'.format(output_dir), [props], 

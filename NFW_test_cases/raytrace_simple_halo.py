@@ -30,7 +30,7 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         halo_prop_file = '{}/properties.csv'.format(halo_dir)
         halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
         inp = inps.single_plane_inputs(halo_dir, out_dir, halo_id='nfw_realization',
-                          sim={'mpp':halo_props['mpp']})
+                                       sim={'mpp':halo_props['mpp']})
        
         # make grid maps
         print('making grid maps...')
