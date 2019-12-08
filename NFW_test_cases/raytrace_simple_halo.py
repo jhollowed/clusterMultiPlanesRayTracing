@@ -23,7 +23,7 @@ import make_lensing_mocks as mk
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output'), 
-                  sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe'):
+                  sdtfe_exe = '/Users/joe/repos/SDTFE/bin/dtfe'):
     
         # crate inputs instance
         print('reading inputs...') 

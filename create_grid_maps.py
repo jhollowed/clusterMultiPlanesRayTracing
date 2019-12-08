@@ -163,7 +163,10 @@ class grid_map_generator():
                 raise Exception('`output_dens_tiffs must either be a float or a bool`')
             
             # compute lensing quantities on the grid from ~infinity (zs0)
-            output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, skip_sdens, output_dens_tiffs)
+            if(self.multiplane):
+                output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, skip_sdens, output_dens_tiffs)
+            else:
+                output_ar = self._grids_at_lens_plane(None, None, skip_sdens, output_dens_tiffs)
 
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
@@ -190,7 +193,7 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def _grids_at_lens_plane(self, idx, lens_plane_bounds=None, skip_sdens=False, image_out=False):
+    def _grids_at_lens_plane(self, idx=None, lens_plane_bounds=None, skip_sdens=False, image_out=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity for the lens plane defined as the projected volume between
@@ -198,9 +201,10 @@ class grid_map_generator():
        
         Parameters
         ----------
-        idx : int
-            integer index of this lens plane (lowest redhisft plane assumed to be index 0)
-        
+        idx : int, optional
+            integer index of this lens plane (lowest redhisft plane assumed to be index 0). This 
+            is only optional in the single-plane usage case, in which case the value defaults to None.
+
         lens_plane_bounds : 2-element list, optional
             The redshift bounds of this lens plane; used to select particles in the plane
             for density estimation. This is only optional in the single-plane usage case, in
@@ -226,7 +230,10 @@ class grid_map_generator():
         self.print('\n---------- working on plane {}/{} ----------'.format(idx+1, self.inp.num_lens_planes))
         
         # write out/read in denisty file
-        dtfe_file = '{}/plane{}_dtfe_input.bin'.format(self.inp.dtfe_path, idx)
+        if(self.multiplane):
+            dtfe_file = '{}/lensplane{}_dtfe_input.bin'.format(self.inp.dtfe_path, idx)
+        else: 
+            dtfe_file = '{}/lensplane_dtfe_input.bin'.format(self.inp.dtfe_path)
         
         # read in particle data, masking by desired lens plane boundaries in the multi-plane case
         # Note: zp, zl, zs for particles, lens, sources
