@@ -103,7 +103,8 @@ class simple_halo:
     # -----------------------------------------------------------------------------------------------
          
         
-    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
+    def output_particles(self, output_dir='./nfw_particle_realization', fov_size_in_r200c=6, 
+                         vis_debug=False, vis_output_dir=None):
         """
         Computes three dimensional quantities for particles sampled along radial dimension. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -115,8 +116,12 @@ class simple_halo:
         ----------
         output_dir : string
             The desired output location for the binary files
+        fov_size_in_r200c : float, optional
+            The fraction of r200c to set the field of view width. Defaults to 6.
         vis_debug : bool
             If True, display a 3d plot of the particles to be output for visual inspection
+        vis_output_dir : string
+            The desired output location for matplotlib figures images, if vis_debug is True
         """
        
         if(vis_output_dir is None): vis_output_dir = output_dir
@@ -175,7 +180,7 @@ class simple_halo:
         theta_sky.astype('f').tofile('{}/theta.bin'.format(output_dir))
         phi_sky.astype('f').tofile('{}/phi.bin'.format(output_dir))
         redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
-        self._write_prop_file(output_dir)
+        self._write_prop_file(fov_size_in_r200c, output_dir)
     
     
     # -----------------------------------------------------------------------------------------------

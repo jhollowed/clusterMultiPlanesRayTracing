@@ -167,7 +167,7 @@ class grid_map_generator():
                 output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, skip_sdens, output_dens_tiffs)
             else:
                 output_ar = self._grids_at_lens_plane(None, None, skip_sdens, output_dens_tiffs)
-
+            
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
             zs_ar = output_ar[1]
@@ -216,6 +216,9 @@ class grid_map_generator():
             and write result to file. If `True`, but no density file is found for read in, will 
             implicitly call `read_cutout_particles()` if needed and call the DTFE and write result 
             to file. Defaults to `True`.
+        
+        image_out : boolean, optional
+            Whether or not to have the STDFE output tiff images of the density field. Defaults to False.
 
         Returns
         -------
@@ -227,10 +230,10 @@ class grid_map_generator():
 
         '''
         
-        self.print('\n---------- working on plane {}/{} ----------'.format(idx+1, self.inp.num_lens_planes))
         
         # write out/read in denisty file
         if(self.multiplane):
+            self.print('\n---------- working on plane {}/{} ----------'.format(idx+1, self.inp.num_lens_planes))
             dtfe_file = '{}/lensplane{}_dtfe_input.bin'.format(self.inp.dtfe_path, idx)
         else: 
             dtfe_file = '{}/lensplane_dtfe_input.bin'.format(self.inp.dtfe_path)

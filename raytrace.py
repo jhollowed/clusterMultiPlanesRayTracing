@@ -73,7 +73,7 @@ class ray_tracer():
         idx = np.argsort(lens_zs)
         self.lens_planes = lens_planes[idx]
         
-        # read in grid maps
+        # read in grid maps (for single-plane case, self.lens_planes is of length 1)
         self.kappa_zs0 = np.array([gmaps_file[plane]['kappa0'][:] for plane in self.lens_planes])
         self.alpha1_zs0 = np.array([gmaps_file[plane]['alpha1'][:] for plane in self.lens_planes])
         self.alpha2_zs0 = np.array([gmaps_file[plane]['alpha2'][:] for plane in self.lens_planes])
@@ -82,12 +82,13 @@ class ray_tracer():
         gmaps_file.close()
     
         # get higher redshift bound of each lens plane to place sources for the multi-plane case
-        # (else these vars undefined)
         if(self.multiplane):
             self.z_lens_planes = self.inp.lens_plane_edges[1:]
             self.zmedian_lens_planes = lens_zs[idx]
             assert len(self.z_lens_planes) == len(self.zmedian_lens_planes), ( 
                    "mismatch between cutout and gmaps lens planes!")
+        else:
+            self.zmedian_lens_planes = lens_zs
     
             
     # ------------------------------------------------------------------------------------------------------
@@ -108,8 +109,8 @@ class ray_tracer():
             to None. For the single-plane use case, this must be passed and is no longer optional
         """
         
-        self.print('\n ---------- creating ray trace maps for halo {} ---------- '.format(self.inp.halo_id))        
-        assert self.z_lens_planes is not None, "read_grid_maps_zs0() must be called before ray-tracing"
+        self.print('\n---------- creating ray trace maps for halo {} ---------- '.format(self.inp.halo_id))        
+        assert self.kappa_zs0 is not None, "read_grid_maps_zs0() must be called before ray-tracing"
         
         # define source redshifts at the lens plane edges if not supplied
         ZS0 = self.inp.zs0
@@ -117,10 +118,21 @@ class ray_tracer():
         if(ZS is None and self.multiplane):
             ZS = self.z_lens_planes
         elif(ZS is None and not self.multiplane):
-            raise ValueError('ZS must be specified under the sinlge-plane usage!')
+            raise ValueError('ZS must be specified for a sinlge-plane run!')
 
         # loop over source redshifts
         for i in range(len(ZS)):
+            
+            # check if this lens plane contains the halo
+            if(self.multiplane):
+                lens_plane_bounds = [self.inp.lens_plane_edges[i], self.inp.lens_plane_edges[i+1]]
+                if lens_plane_bounds[0] < self.inp.halo_redshift and \
+                   lens_plane_bounds[1] > self.inp.halo_redshift:
+                       group_prefix = 'halo_plane'
+                else: group_prefix = 'plane'
+            else:
+                lens_plane_bounds = None
+                group_prefix = 'halo_plane'
 
             # ------------------------ rescale Lens Data (zs0->zs) --------------------------
             zs = ZS[i]
@@ -154,7 +166,9 @@ class ray_tracer():
             self.print("sf2 = {}".format(np.max(sf2)))
             
             # Save Outputs
-            zs_group = 'plane{}'.format(i)
+
+            if(self.multiplane): zs_group = '{}{}'.format(group_prefix, i)
+            else: zs_group = group_prefix
             self.out_file.create_group(zs_group)
             self.out_file[zs_group]['zs'] = np.atleast_1d(zs).astype('float32')
             self.out_file[zs_group]['kappa0'] = kf0.astype('float32')
@@ -163,13 +177,6 @@ class ray_tracer():
             self.out_file[zs_group]['shear1'] = sf1.astype('float32')
             self.out_file[zs_group]['shear2'] = sf2.astype('float32')
             
-            # debugging; remove this later
-            #self.out_file[zs_group]['kappa0_array'] = kappa0_array
-            #self.out_file[zs_group]['alpha1_array'] = alpha1_array
-            #self.out_file[zs_group]['alpha2_array'] = alpha2_array
-            #self.out_file[zs_group]['shear1_array'] = shear1_array
-            #self.out_file[zs_group]['shear2_array'] = shear2_array
-
         self.out_file.close()
         self.print('done')
     

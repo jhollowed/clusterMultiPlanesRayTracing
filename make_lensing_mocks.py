@@ -72,16 +72,20 @@ class lensing_mock_generator():
         # read raytrace result
         self.raytrace_file = h5py.File(self.raytrace_path[0])
         
-        source_plane_keys = np.array(list(self.raytrace_file.keys()))
-        source_planes = np.array([int(s.split('plane')[-1]) for s in source_plane_keys])
-        plane_order = np.argsort(source_planes) 
-        self.source_plane_keys = source_plane_keys[plane_order]
+        # for multiplane case, make sure planes are in order of increasing redshift
+        if(self.multiplane):
+            source_plane_keys = np.array(list(self.raytrace_file.keys()))
+            source_planes = np.array([int(s.split('plane')[-1]) for s in source_plane_keys])
+            plane_order = np.argsort(source_planes) 
+            self.source_plane_keys = source_plane_keys[plane_order]
+        else:
+            self.source_plane_keys = np.array(list(self.raytrace_file.keys()))
     
     
     # ------------------------------------------------------------------------------------------------------
 
 
-    def make_lensing_mocks(self, nsrcs=Nz_Chang2014, n_places=None, zs=None, vis_shears=False):
+    def make_lensing_mocks(self, nsrcs=Nz_Chang2014, n_places='rand', zs=None, vis_shears=False):
         """
         Performs interpolation on ray tracing maps, writing the result to an HDF file, the location
         of which is specified in `self.inp.outputs_path`. Note: the output files will be closed after
@@ -105,7 +109,7 @@ class lensing_mock_generator():
                 of the ray-traced maps)
             -- 'rand', which places the sources by a uniform random ditribution in the angular coordinates
         zs : float array or None
-            Redshift edges of source planes to include. If None, use all source plaes given in ray-tracing outputs
+            Redshifts of source planes to include. If None, use all source planes given in ray-tracing outputs
             for the halo specified in self.inp. Defaults to None.
         theta1 : float array or None **DEPRECATED**
             azimuthal angular coordinate of the sources, in arcsec. If None, then nsrcs is assumed to have
@@ -122,8 +126,7 @@ class lensing_mock_generator():
        
         # get source plane redshift edges if not passed
         if(zs is None): 
-            zs = [0.0]
-            zs = np.hstack([zs, np.squeeze([self.raytrace_file[key]['zs'][:] for key in self.source_plane_keys])])
+            zs = np.array([self.raytrace_file[key]['zs'][0] for key in self.source_plane_keys])
         
         # define interpolation points
         # if nsrcs is callable, calulate N(z) and randomly populate source planes
@@ -152,7 +155,7 @@ class lensing_mock_generator():
 
         # loop over source planes
         for i in range(len(self.source_plane_keys)):
-            
+           
             zsp =zs[i]
             zkey = self.source_plane_keys[i]
 
