@@ -41,7 +41,7 @@ class halo_inputs():
         
         #--------------------------------- lensing params -------------------------------------
 
-        self.nnn =1024
+        self.nnn = 1024
         self.dsx = self.bsz/self.nnn
         self.bsz_arc = self.bsz*3600.
         self.dsx_arc = self.dsx*3600.
@@ -92,7 +92,8 @@ class multi_plane_inputs(halo_inputs):
         self.halo_shell = int(self.halo_props['halo_lc_shell'])
         self.snapid_list = np.array([int(s.split('Cutout')[-1]) for s in 
                                      glob.glob('{}/*Cutout*'.format(self.input_prtcls_dir))])
-        self.snapid_redshift = 1 / np.linspace(1/(self.sim['z_init']+1), 1, self.sim['sim_steps'])[self.snapid_list] - 1
+        self.snapid_redshift = 1 / np.linspace(1/(self.sim['z_init']+1), 1, 
+                                               self.sim['sim_steps'])[self.snapid_list] - 1
 
         # trim to depth given by max_depth
         comv = self.cosmo.comoving_distance

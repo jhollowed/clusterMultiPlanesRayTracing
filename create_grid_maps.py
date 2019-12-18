@@ -118,7 +118,7 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def create_grid_maps_for_zs0(self, skip_sdens=True, output_dens_tiffs=False):
+    def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, output_dens_tiffs=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity. Note: the output files will be closed after this function 
@@ -126,6 +126,9 @@ class grid_map_generator():
 
         Parameters
         ----------
+        subtract_mean : boolean, optional
+            Whether or not to subtract the mean density from the DTFE result to obtain the overdensity. 
+            Defaults to True.
         skip_sdens : boolean, optional
             Whether or not to attempt to skip the DTFE calculation by reading density outputs
             from destination pointed to by `inp` as `self.dtfe_path`. If `False`, will enforce that 
@@ -164,9 +167,9 @@ class grid_map_generator():
             
             # compute lensing quantities on the grid from ~infinity (zs0)
             if(self.multiplane):
-                output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, skip_sdens, output_dens_tiffs)
+                output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, subtract_mean, skip_sdens, output_dens_tiffs)
             else:
-                output_ar = self._grids_at_lens_plane(None, None, skip_sdens, output_dens_tiffs)
+                output_ar = self._grids_at_lens_plane(None, None, subtract_mean, skip_sdens, output_dens_tiffs)
             
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
@@ -193,7 +196,7 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def _grids_at_lens_plane(self, idx=None, lens_plane_bounds=None, skip_sdens=False, image_out=False):
+    def _grids_at_lens_plane(self, idx=None, lens_plane_bounds=None, subtract_mean=True, skip_sdens=False, image_out=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity for the lens plane defined as the projected volume between
@@ -204,19 +207,19 @@ class grid_map_generator():
         idx : int, optional
             integer index of this lens plane (lowest redhisft plane assumed to be index 0). This 
             is only optional in the single-plane usage case, in which case the value defaults to None.
-
         lens_plane_bounds : 2-element list, optional
             The redshift bounds of this lens plane; used to select particles in the plane
             for density estimation. This is only optional in the single-plane usage case, in
             which case the value defaults to None.
-            
+        subtract_mean : boolean, optional
+            Whether or not to subtract the mean density from the DTFE result to obtain the overdensity. 
+            Defaults to True.    
         skip_sdens : boolean, optional
             Whether or not to attempt to skip the DTFE calculation by reading density outputs
             from destination pointed to by `inp` as `self.dtfe_path`. If `False`, call the DTFE 
             and write result to file. If `True`, but no density file is found for read in, will 
             implicitly call `read_cutout_particles()` if needed and call the DTFE and write result 
             to file. Defaults to `True`.
-        
         image_out : boolean, optional
             Whether or not to have the STDFE output tiff images of the density field. Defaults to False.
 
@@ -341,10 +344,11 @@ class grid_map_generator():
         #sdens_cmpch = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
        
         # subtract mean density from sdens_cmpch
-        rho_mean = cm.projected_rho_mean(np.min(zp), np.max(zp))
-        mean_diff = np.mean(sdens_cmpch) / rho_mean
-        sdens_cmpch -= rho_mean
-        self.print('Measured/theory mean is {}'.format(mean_diff))
+        if(subtract_mean):
+            rho_mean = cm.projected_rho_mean(np.min(zp), np.max(zp))
+            mean_diff = np.mean(sdens_cmpch) / rho_mean
+            sdens_cmpch -= rho_mean
+            self.print('Measured/theory mean is {}'.format(mean_diff))
 
         # ----------------------- convergence maps -----------------------------
 
