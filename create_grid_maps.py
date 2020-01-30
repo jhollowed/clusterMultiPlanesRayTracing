@@ -118,7 +118,8 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, output_dens_tiffs=False):
+    def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, 
+                                 output_dens_tiffs=False, output_density=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity. Note: the output files will be closed after this function 
@@ -136,10 +137,15 @@ class grid_map_generator():
             result to file. If `True`, but no density file is found for read in, will implicitly 
             call `read_cutout_particles()` if needed and call the DTFE and write result to file.
             Defaults to `True`.
+        output_density : boolean or float
+            Whether or not to output the DTFE result on the grid (in units of the input particle positions 
+            and masses). Can also be a `float`, in which case the density will be output for all halos above 
+            that value in log(M), e.g. if output_density = 14.0, then output images for all lens planes of 
+            cutouts for which the halo's mass is M >= 10^14 M_sun/h. Defaults to False.
         output_sdens_tiffs : boolean or float
             Whether or not to output tiff images of the DTFE result. Can also be a `float`, in which
             case tiff images will be generated for all halos above that value in log(M), e.g. if
-            output_sdens_tiffs = 15.0, then output images for all lens planes of cutouts for which the
+            output_sdens_tiffs = 14.0, then output images for all lens planes of cutouts for which the
             halo's mass is M >= 10^14 M_sun/h. Defaults to False.
         '''
         
@@ -159,17 +165,27 @@ class grid_map_generator():
                 lens_plane_bounds = None
                 group_prefix = 'halo_plane'
     
+            # set density output flag
+            if(isinstance(output_density, float)):
+                if( np.log10(self.inp.halo_mass) >= output_density): output_density = True
+                else: output_density = False
+            elif(not isinstance(output_density, bool)):
+                raise Exception('`output_density must either be a float or a bool`')
+            
             # set image output flag
             if(isinstance(output_dens_tiffs, float)):
                 if( np.log10(self.inp.halo_mass) >= output_dens_tiffs): output_dens_tiffs = True
+                else: output_dens_tiffs = False
             elif(not isinstance(output_dens_tiffs, bool)):
                 raise Exception('`output_dens_tiffs must either be a float or a bool`')
             
             # compute lensing quantities on the grid from ~infinity (zs0)
             if(self.multiplane):
-                output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, subtract_mean, skip_sdens, output_dens_tiffs)
+                output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, subtract_mean,
+                                                      skip_sdens, output_dens_tiffs)
             else:
-                output_ar = self._grids_at_lens_plane(None, None, subtract_mean, skip_sdens, output_dens_tiffs)
+                output_ar = self._grids_at_lens_plane(None, None, subtract_mean, 
+                                                      skip_sdens, output_dens_tiffs)
             
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
@@ -179,6 +195,7 @@ class grid_map_generator():
             alpha2_ar = output_ar[4]
             shear1_ar = output_ar[5]
             shear2_ar = output_ar[6]
+            density_arr = output_ar[7]
      
             if(self.multiplane): zl_group = '{}{}'.format(group_prefix, i)
             else: zl_group = group_prefix
@@ -190,13 +207,16 @@ class grid_map_generator():
             self.out_file[zl_group]['alpha2'] = alpha2_ar.astype('float32')
             self.out_file[zl_group]['shear1'] = shear1_ar.astype('float32')
             self.out_file[zl_group]['shear2'] = shear2_ar.astype('float32')
+            if(output_density):
+                self.out_file[zl_group]['density'] = density_ar.astype('float32')
         self.out_file.close()
     
     
     # ------------------------------------------------------------------------------------------------------
 
 
-    def _grids_at_lens_plane(self, idx=None, lens_plane_bounds=None, subtract_mean=True, skip_sdens=False, image_out=False):
+    def _grids_at_lens_plane(self, idx=None, lens_plane_bounds=None, subtract_mean=True,
+                             skip_sdens=False, image_out=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity for the lens plane defined as the projected volume between
@@ -386,4 +406,4 @@ class grid_map_generator():
         shear1 = 0.5*(al11 - al22)
         shear2 = 0.5*(al12 + al21)
 
-        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2
+        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sdens_cmpch

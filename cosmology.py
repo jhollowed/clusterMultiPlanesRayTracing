@@ -14,7 +14,7 @@ from astropy.cosmology import FlatLambdaCDM
 # apr is arsec per radian
 vc = const.c.to(u.km/u.s)
 G = const.G.to(u.Mpc/u.solMass * u.km**2 / u.s**2).value
-apr = 360*3600/(2*np.pi) 
+apr = 3600 * 180/(np.pi) 
 
 # ------------------ cosmology ------------------
 

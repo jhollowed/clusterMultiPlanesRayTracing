@@ -76,13 +76,13 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         halo_prop_file = '{}/properties.csv'.format(halo_dir)
         halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
         inp = inps.single_plane_inputs(halo_dir, out_dir, halo_id='nfw_realization',
-                                       sim={'mpp':halo_props['mpp']}, )
-       
+                                       sim={'mpp':halo_props['mpp']}, )      
         # make grid maps
         print('making grid maps...')
         gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
         gm_gen.read_cutout_particles()
-        gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, output_dens_tiffs=True)
+        gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
+                                        output_dens_tiffs=True, output_density=True)
         
         print('raytracing from z=1...')
         rt_gen = rt.ray_tracer(inp, overwrite=True)
@@ -211,5 +211,5 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, lo
 
 
 if __name__ == '__main__':
-    #halo_raytrace()
+    halo_raytrace()
     vis_outputs()
