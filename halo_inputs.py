@@ -50,10 +50,9 @@ class halo_inputs():
         #self.mpp = self.mpp * 100 # uncomment for downsampled inputs
         self.npad = 5
     
-        # gen grid points
-        ds = self.bsz_arc/self.nnn
-        x1 = np.linspace(0,self.bsz_arc-ds,self.nnn)-self.bsz_arc/2.0+ds/2.0
-        x2 = np.linspace(0,self.bsz_arc-ds,self.nnn)-self.bsz_arc/2.0+ds/2.0
+        # gen grid points in arcsec
+        x1 = np.linspace(0,self.bsz_arc-self.dsx_arc,self.nnn) - self.bsz_arc/2.0 + self.dsx_arc/2.0
+        x2 = np.linspace(0,self.bsz_arc-self.dsx_arc,self.nnn) - self.bsz_arc/2.0 + self.dsx_arc/2.0
         self.xi1, self.xi2 = np.meshgrid(x1,x2)
 
         #--------------------------------- outputs --------------------------------------------

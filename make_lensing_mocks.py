@@ -129,7 +129,7 @@ class lensing_mock_generator():
             zs = np.array([self.raytrace_file[key]['zs'][0] for key in self.source_plane_keys])
         
         # define interpolation points
-        # if nsrcs is callable, calulate N(z) and randomly populate source planes
+        # if nsrcs is callable, calculate N(z) and randomly populate source planes
         # if nsrcs is an int and n_places=grid, then place the sources on a uniform grid over the fov
         # if nsrcs is an int and n_places=rand, then randomly populate source planes with uniform density
         if hasattr(nsrcs, '__call__'): 
@@ -167,9 +167,9 @@ class lensing_mock_generator():
 
             af1 = self.raytrace_file[zkey]['alpha1'][:]
             af2 = self.raytrace_file[zkey]['alpha2'][:]
-            kf0 = self.raytrace_file[zkey]['kappa0'][:]
             sf1 = self.raytrace_file[zkey]['shear1'][:]
             sf2 = self.raytrace_file[zkey]['shear2'][:]
+            kf0 = self.raytrace_file[zkey]['kappa0'][:]
             
             # Deflection Angles and lensed Positions
             yf1 = self.xx1 - af1
@@ -179,9 +179,9 @@ class lensing_mock_generator():
             # xr1_array, xr2_array = ys1_array, ys2_array
             
             # Update Lensing Signals of Lensed Positions
-            kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             sr1_array = cf.call_inverse_cic_single(sf1,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             sr2_array = cf.call_inverse_cic_single(sf2,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
+            kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
 
             mfa = cf.alphas_to_mu(af1, af2, self.inp.bsz_arc, self.inp.nnn)
             mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
@@ -191,9 +191,9 @@ class lensing_mock_generator():
             self.out_file[zkey]['zs'] = np.atleast_1d(zsp).astype('float32')
             self.out_file[zkey]['x1'] = xr1_array.astype('float32')
             self.out_file[zkey]['x2'] = xr2_array.astype('float32')
-            self.out_file[zkey]['kappa0'] = kr0_array.astype('float32')
             self.out_file[zkey]['shear1'] = sr1_array.astype('float32')
             self.out_file[zkey]['shear2'] = sr2_array.astype('float32')
+            self.out_file[zkey]['kappa0'] = kr0_array.astype('float32')
             #self.out_file[zkey]['mra'] = mra_array.astype('float32') <-- probs dont need
            
             if vis_shears:

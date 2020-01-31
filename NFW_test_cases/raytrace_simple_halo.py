@@ -82,7 +82,8 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
         gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
         gm_gen.read_cutout_particles()
         gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
-                                        output_dens_tiffs=True, output_density=True)
+                                        output_dens_tiffs=True, output_density=True, 
+                                        output_positions=True)
         
         print('raytracing from z=1...')
         rt_gen = rt.ray_tracer(inp, overwrite=True)

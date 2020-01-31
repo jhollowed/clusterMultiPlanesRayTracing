@@ -171,11 +171,11 @@ class ray_tracer():
             else: zs_group = group_prefix
             self.out_file.create_group(zs_group)
             self.out_file[zs_group]['zs'] = np.atleast_1d(zs).astype('float32')
-            self.out_file[zs_group]['kappa0'] = kf0.astype('float32')
             self.out_file[zs_group]['alpha1'] = af1.astype('float32')
             self.out_file[zs_group]['alpha2'] = af2.astype('float32')
             self.out_file[zs_group]['shear1'] = sf1.astype('float32')
             self.out_file[zs_group]['shear2'] = sf2.astype('float32')
+            self.out_file[zs_group]['kappa0'] = kf0.astype('float32')
             
         self.out_file.close()
         self.print('done')

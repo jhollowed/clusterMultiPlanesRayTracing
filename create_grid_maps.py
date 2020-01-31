@@ -119,7 +119,7 @@ class grid_map_generator():
 
 
     def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, 
-                                 output_dens_tiffs=False, output_density=False):
+                                 output_dens_tiffs=False, output_density=False, output_positions=False):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity. Note: the output files will be closed after this function 
@@ -147,6 +147,13 @@ class grid_map_generator():
             case tiff images will be generated for all halos above that value in log(M), e.g. if
             output_sdens_tiffs = 14.0, then output images for all lens planes of cutouts for which the
             halo's mass is M >= 10^14 M_sun/h. Defaults to False.
+        output_positions : boolean or float
+            Whether or not to output angular positions of each gridpoint, in arcsec. Can also be a `float`, 
+            in which case positions will be output for all halos above that value in log(M), e.g. if
+            output_sdens_tiffs = 14.0, then output images for all lens planes of cutouts for which the
+            halo's mass is M >= 10^14 M_sun/h. Defaults to False, for storage reasons; this only needs to be
+            turned on if the user intends to do profile fitting directly on the individual lens plane grids, 
+            otherwise the subsequest raytracing and interpolation will provide these quantities.
         '''
         
         if(skip_sdens == False): 
@@ -179,13 +186,19 @@ class grid_map_generator():
             elif(not isinstance(output_dens_tiffs, bool)):
                 raise Exception('`output_dens_tiffs must either be a float or a bool`')
             
+            # set angular position output flag
+            if(isinstance(output_positions, float)):
+                if( np.log10(self.inp.halo_mass) >= output_positions): output_positions = True
+                else: output_positions = False
+            elif(not isinstance(output_positions, bool)):
+                raise Exception('`output_positions must either be a float or a bool`')
+            
             # compute lensing quantities on the grid from ~infinity (zs0)
             if(self.multiplane):
                 output_ar = self._grids_at_lens_plane(i, lens_plane_bounds, subtract_mean,
                                                       skip_sdens, output_dens_tiffs)
             else:
-                output_ar = self._grids_at_lens_plane(None, None, subtract_mean, 
-                                                      skip_sdens, output_dens_tiffs)
+                output_ar = self._grids_at_lens_plane(None, None, subtract_mean, skip_sdens, output_dens_tiffs)
             
             # write output to HDF5, with one group per lens plane
             zl_ar = output_ar[0]
@@ -195,7 +208,7 @@ class grid_map_generator():
             alpha2_ar = output_ar[4]
             shear1_ar = output_ar[5]
             shear2_ar = output_ar[6]
-            density_arr = output_ar[7]
+            density_ar = output_ar[7]
      
             if(self.multiplane): zl_group = '{}{}'.format(group_prefix, i)
             else: zl_group = group_prefix
@@ -209,6 +222,12 @@ class grid_map_generator():
             self.out_file[zl_group]['shear2'] = shear2_ar.astype('float32')
             if(output_density):
                 self.out_file[zl_group]['density'] = density_ar.astype('float32')
+            if(output_positions):
+                theta1_ar = self.inp.xi1
+                theta2_ar = self.inp.xi2
+                self.out_file[zl_group]['x1'] = theta1_ar.astype('float32')
+                self.out_file[zl_group]['x2'] = theta2_ar.astype('float32') 
+                
         self.out_file.close()
     
     
@@ -310,17 +329,15 @@ class grid_map_generator():
             # x1 azimuthal projected distance in comoving Mpc/h
             # x2 coaltitude projected distance in comoving Mpc/h
 
-            xo3 = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
-            xc3 = (np.max(xo3)+np.min(xo3))*0.5
-            x3in = xo3 - xc3
+            rp = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
+            rp_center = (np.max(rp)+np.min(rp))*0.5
+            x3in = rp - rp_center
             
-            xo1 = tp
-            xc1 = (np.max(xo1)+np.min(xo1))*0.5
-            x1in = np.sin((xo1-xc1)/cm.apr) * xo3
+            tp_centered = tp - (np.max(tp)+np.min(tp))*0.5 
+            x1in = np.sin((tp_centered)/cm.apr) * xo3
             
-            xo2 = pp
-            xc2 = (np.max(xo2)+np.min(xo2))*0.5
-            x2in = np.sin((xo2-xc2)/cm.apr) * xo3
+            pp_centered = pp - (np.max(pp)+np.min(pp))*0.5 
+            x2in = np.sin((pp_centered)/cm.apr) * xo3
             
             # ------ do density estiamtion via system call to SDTFE exe ------
             # x, y, z in column major
@@ -351,7 +368,7 @@ class grid_map_generator():
                 subprocess.run(dtfe_args, stdout=self.c_out)
             
             # read in result
-            # sdens_cmpch is comoving surface density of this lens plane in (M_sun/h) / (Mpc/h)**2
+            # sdens_cmpch is comoving surface density of this lens plane in (M_sun/h) / (Mpc/h)^2
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
             sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
 
@@ -370,12 +387,15 @@ class grid_map_generator():
             sdens_cmpch -= rho_mean
             self.print('Measured/theory mean is {}'.format(mean_diff))
 
-        # ----------------------- convergence maps -----------------------------
+        # ----------------------- convergence maps and positions -----------------------------
 
-        # 1/a^2 in sdens_cmpch scales to proper area --> should I be doing this?
-        # sigma_crit in proper (M_sun/h) / (Mpc/h)**2 --> ??
+        # 1/a^2 in sdens_cmpch scales to proper area --> should I be doing this? --> no
+        
+        # sdens_cmpch expected in (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
+        # sigma_crit in comoving (M_sun/h) / (Mpc/h)^2 
+        # convergence dimensionless
         self.print('computing convergence') 
-        kappa = sdens_cmpch*(1.0+zl_median)**2.0/cf.sigma_crit(zl_median,zs)
+        kappa = sdens_cmpch * (1+zl_median)**2 / cf.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
 
