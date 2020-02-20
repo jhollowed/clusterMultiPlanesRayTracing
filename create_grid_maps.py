@@ -12,6 +12,7 @@ from astropy.table import Table
 import cfuncs as cf
 import cosmology as cm
 
+
 # ------------------------- utilities ----------------------------------
 
 def printflush(s):
@@ -388,14 +389,13 @@ class grid_map_generator():
             self.print('Measured/theory mean is {}'.format(mean_diff))
 
         # ----------------------- convergence maps and positions -----------------------------
-
-        # 1/a^2 in sdens_cmpch scales to proper area --> should I be doing this? --> no
         
-        # sdens_cmpch expected in (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
-        # sigma_crit in comoving (M_sun/h) / (Mpc/h)^2 
+        # sdens_cmpch expected in comoving (?) (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
+        # sigma_crit in proper (?) (M_sun/h) / (Mpc/h)^2 
         # convergence dimensionless
+        
         self.print('computing convergence') 
-        kappa = sdens_cmpch * (1+zl_median)**2 / cf.sigma_crit(zl_median,zs)
+        kappa = sdens_cmpch / cf.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
 

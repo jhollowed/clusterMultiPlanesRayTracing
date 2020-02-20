@@ -408,12 +408,10 @@ def cart2pol3d(x, y, z):
 
 def sigma_crit(zl, zs):
     # return the critical surface density for the lensing geometry of a lens-source pair
-    # OLD ----> at redshifts z1 and z2, respectively, in proper (M_sun/h) / (Mpc/h)**2
-    # at redshifts zl and zs, respectively, in comoving (M_sun/h) / (Mpc/h)**2
+    # at redshifts z1 and z2, respectively, in proper (M_sun) / (Mpc)**2
  
-    a = 1/(1+zl)
     sigma_crit = vc*vc/(4.0*np.pi*G)*cm.Da(zs)/(cm.Da(zl)*cm.Da2(zl,zs))
-    return sigma_crit * a**2
+    return sigma_crit
 
 def ai_to_ah(ai,zl,zs):
     res = cm.Da(zs)/cm.Da2(zl,zs)*ai
