@@ -411,7 +411,7 @@ def sigma_crit(zl, zs):
     # at redshifts z1 and z2, respectively, in proper (M_sun) / (Mpc)**2
  
     sigma_crit = vc*vc/(4.0*np.pi*G)*cm.Da(zs)/(cm.Da(zl)*cm.Da2(zl,zs))
-    return sigma_crit
+    return sigma_crit * (1+zl)**2
 
 def ai_to_ah(ai,zl,zs):
     res = cm.Da(zs)/cm.Da2(zl,zs)*ai

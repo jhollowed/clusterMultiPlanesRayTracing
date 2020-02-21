@@ -390,12 +390,12 @@ class grid_map_generator():
 
         # ----------------------- convergence maps and positions -----------------------------
         
-        # sdens_cmpch expected in comoving (?) (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
-        # sigma_crit in proper (?) (M_sun/h) / (Mpc/h)^2 
-        # convergence dimensionless
-        
-        self.print('computing convergence') 
-        kappa = sdens_cmpch / cf.sigma_crit(zl_median,zs)
+        # sdens_cmpch expected in comoving (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
+        # sigma_crit in proper (M_sun/h) / (Mpc/h)^2
+        # factor of a^-2 in kappa to get sdens_cmpch in proper area
+        # convergence dimensionless 
+        self.print('computing convergence')
+        kappa = sdens_cmpch * (1+zl_median)**2 / cf.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
 
