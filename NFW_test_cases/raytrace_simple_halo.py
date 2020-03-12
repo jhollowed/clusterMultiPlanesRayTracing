@@ -69,30 +69,34 @@ parula = LinearSegmentedColormap.from_list('parula', cm_data)
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output'), 
-                  sdtfe_exe = '/Users/joe/repos/SDTFE/bin/dtfe'):
+                  sdtfe_exe = '/Users/joe/repos/SDTFE/bin/dtfe', 
+                  zs = [1.0]):
     
-        # crate inputs instance
-        print('reading inputs...') 
-        halo_prop_file = '{}/properties.csv'.format(halo_dir)
-        halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
-        inp = inps.single_plane_inputs(halo_dir, out_dir, halo_id='nfw_realization',
-                                       sim={'mpp':halo_props['mpp']}, )      
-        # make grid maps
-        print('making grid maps...')
-        gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
-        gm_gen.read_cutout_particles()
-        gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
-                                        output_dens_tiffs=True, output_density=True, 
-                                        output_positions=True)
-        
-        print('raytracing from z=1...')
-        rt_gen = rt.ray_tracer(inp, overwrite=True)
-        rt_gen.read_grid_maps_zs0()
-        rt_gen.raytrace_grid_maps_for_zs(ZS=[1])
-            
-        mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
-        mock_gen.read_raytrace_planes()
-        mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 10000, n_places='rand')
+        for i in range(len(zs)):
+            # crate inputs instance
+            print('reading inputs...') 
+            halo_prop_file = '{}/properties.csv'.format(halo_dir)
+            halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
+            inp = inps.single_plane_inputs(halo_dir, '{}/lensmaps_zs{}'.format(out_dir, zs[i]), 
+                                           halo_id='nfw_realization', sim={'mpp':halo_props['mpp']})
+            inp.dtfe_path = out_dir + "/dtfe_dens/"
+
+            # make grid maps
+            print('making grid maps...')
+            gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
+            gm_gen.read_cutout_particles()
+            gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
+                                            output_dens_tiffs=True, output_density=True, 
+                                            output_positions=True)
+           
+            print('raytracing from z={}...'.format(zs[i]))
+            rt_gen = rt.ray_tracer(inp, overwrite=True)
+            rt_gen.read_grid_maps_zs0()
+            rt_gen.raytrace_grid_maps_for_zs(ZS=[zs[i]])
+                
+            mock_gen = mk.lensing_mock_generator(inp, overwrite=True)
+            mock_gen.read_raytrace_planes()
+            mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 2000, n_places='rand')
 
 
 # ------------------------------------------------------------------------------------------
@@ -212,5 +216,6 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, lo
 
 
 if __name__ == '__main__':
-    halo_raytrace()
-    vis_outputs()
+    
+    halo_raytrace(zs = [float(sys.argv[1])])
+    #vis_outputs()

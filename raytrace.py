@@ -30,9 +30,9 @@ class ray_tracer():
         inp : halo_inputs instance
             An object instance of a class from halo_inputs (either single_plane_inputs or multi_plane_inputs),
             giving run parameters and read/write directories
-        overwrite : bool
+        overwrite : bool, optional
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
-        stdout : bool
+        stdout : bool, optional
             Whether or not to supress print statements (useful for parallel runs). `False` means all
             print statements will be suppressed. Defaults to `True`.
         '''
@@ -51,8 +51,7 @@ class ray_tracer():
         self.shear1_zs0 = None
         self.shear2_zs0 = None
         mode = 'w' if overwrite else 'a'
-        self. out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(
-                                    self.inp.outputs_path, self.inp.halo_id), mode)
+        self.out_file = h5py.File('{}/{}_raytraced_maps.hdf5'.format(self.inp.outputs_path, self.inp.halo_id), mode)
         self.print('created out file {}'.format(self.out_file.filename))
    
 

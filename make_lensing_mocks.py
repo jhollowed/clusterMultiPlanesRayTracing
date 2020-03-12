@@ -33,9 +33,9 @@ class lensing_mock_generator():
         inp : halo_inputs instance
             An object instance of a class from halo_inputs (either single_plane_inputs or multi_plane_inputs),
             giving run parameters and read/write directories
-        overwrite : bool
+        overwrite : bool, optional
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
-        stdout : bool
+        stdout : bool, optional
             Whether or not to supress print statements (useful for parallel runs). `False` means all
             print statements will be suppressed. Defaults to `True`.
         '''
@@ -160,7 +160,8 @@ class lensing_mock_generator():
             zkey = self.source_plane_keys[i]
 
             self.print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
-            
+           
+
             # get positions at this source plane
             ys1_array = ys1_arrays[i]
             ys2_array = ys2_arrays[i]

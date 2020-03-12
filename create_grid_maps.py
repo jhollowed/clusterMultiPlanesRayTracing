@@ -335,10 +335,10 @@ class grid_map_generator():
             x3in = rp - rp_center
             
             tp_centered = tp - (np.max(tp)+np.min(tp))*0.5 
-            x1in = np.sin((tp_centered)/cm.apr) * xo3
+            x1in = np.sin((tp_centered)/cm.apr) * rp
             
             pp_centered = pp - (np.max(pp)+np.min(pp))*0.5 
-            x2in = np.sin((pp_centered)/cm.apr) * xo3
+            x2in = np.sin((pp_centered)/cm.apr) * rp
             
             # ------ do density estiamtion via system call to SDTFE exe ------
             # x, y, z in column major
