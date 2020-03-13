@@ -196,7 +196,7 @@ class simple_halo:
     # -----------------------------------------------------------------------------------------------
 
 
-    def _write_prop_file(self, R=6, output_dir='./nfw_particle_realization'):
+    def _write_prop_file(self, fov_radius, output_dir='./nfw_particle_realization'):
         """
         Writes a csv file contining the halo properties needed by this package's ray tracing modules
         The boxRadius can really be anything, since the space around the NFW ball is empty-- here, we
@@ -205,8 +205,8 @@ class simple_halo:
 
         Parameters
         ----------
-        R : float, optional
-            The fraction of r200c to set the field of view width. Defaults to 6.
+        Rfov_radius : float
+            Half of the square FOV side length (this scale will be used in later calls to the desnity estaimtor)
 
         output_dir : string, optional
             The desired output location for the property file. Defaults to a subdir created at the 
@@ -214,7 +214,7 @@ class simple_halo:
         """
 
         # find the angular scale corresponding to fov_r200c * r200c in proper Mpc at the redshift of the halo
-        boxRadius_Mpc = R*self.r200c
+        boxRadius_Mpc = fov_radius
         trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60
         boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
 
