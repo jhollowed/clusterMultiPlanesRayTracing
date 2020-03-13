@@ -217,7 +217,6 @@ class simple_halo:
         boxRadius_Mpc = fov_radius
         trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60 * (self.redshift+1)
         boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
-        pdb.set_trace()
 
         cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, '\
                'sod_halo_cdelta, sod_halo_cdelta_error, halo_lc_x, halo_lc_y, halo_lc_z, '\
