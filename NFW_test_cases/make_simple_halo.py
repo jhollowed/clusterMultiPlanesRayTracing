@@ -189,7 +189,7 @@ class simple_halo:
         # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
         # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2).
         # Trim this scale by 5% to be safe.
-        fov_size_in_r200c = ((self.rfrac * self.r200c) / np.sqrt(2)) * 0.95
+        fov_size_in_r200c = ((self.max_rfrac * self.r200c) / np.sqrt(2)) * 0.95
         self._write_prop_file(fov_size_in_r200c, output_dir)
     
     
