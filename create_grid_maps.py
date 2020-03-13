@@ -326,9 +326,9 @@ class grid_map_generator():
             self.print('{} particles'.format(len(xp)))
    
             # compute fov-centric coordinates:
-            # x3 in comoving Mpc/h along the LOS
-            # x1 azimuthal projected distance in comoving Mpc/h
-            # x2 coaltitude projected distance in comoving Mpc/h
+            # x3 in comoving Mpc along the LOS
+            # x1 azimuthal projected distance in comoving Mpc
+            # x2 coaltitude projected distance in comoving Mpc
 
             rp = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
             rp_center = (np.max(rp)+np.min(rp))*0.5
@@ -353,7 +353,7 @@ class grid_map_generator():
             plane_depth = np.max(x3in)-np.min(x3in)
             
             # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
-            #               field_width(arcsec) field_depth(Mpc/h) particle_mass mc_box_width 
+            #               field_width(Mpc) field_depth(Mpc) particle_mass mc_box_width 
             #               n_mc_samples sample_factor image_out? ]
             dtfe_args = ["%s"%s for s in 
                          [self.dtfe_exe,
@@ -369,7 +369,7 @@ class grid_map_generator():
                 subprocess.run(dtfe_args, stdout=self.c_out)
             
             # read in result
-            # sdens_cmpch is comoving surface density of this lens plane in (M_sun/h) / (Mpc/h)^2
+            # sdens_cmpch is comoving surface density of this lens plane in M_sun/Mpc^2
             sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
             sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
 
@@ -390,8 +390,8 @@ class grid_map_generator():
 
         # ----------------------- convergence maps and positions -----------------------------
         
-        # sdens_cmpch expected in comoving (M_sun/h) / (Mpc/h)^2 (hacc lightcone particle units)
-        # sigma_crit in proper (M_sun/h) / (Mpc/h)^2
+        # sdens_cmpch expected in comoving M_sun/Mpc^2
+        # sigma_crit in proper M_sun/Mpc^2
         # factor of a^-2 in kappa to get sdens_cmpch in proper area
         # convergence dimensionless 
         self.print('computing convergence')
