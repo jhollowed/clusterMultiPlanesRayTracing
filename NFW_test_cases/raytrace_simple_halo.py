@@ -69,7 +69,7 @@ parula = LinearSegmentedColormap.from_list('parula', cm_data)
 
 def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'), 
                   out_dir = os.path.abspath('./lensing_output'), 
-                  sdtfe_exe = '/Users/joe/repos/SDTFE/bin/dtfe', 
+                  #sdtfe_exe = '/Users/joe/repos/SDTFE/bin/dtfe', 
                   zs = [1.0]):
     
         for i in range(len(zs)):
@@ -78,12 +78,12 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
             halo_prop_file = '{}/properties.csv'.format(halo_dir)
             halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
             inp = inps.single_plane_inputs(halo_dir, '{}/lensmaps_zs{}'.format(out_dir, zs[i]), 
+                                           dtfe_out_dir = '{}/dtfe_dens'.format(out_dir),
                                            halo_id='nfw_realization', sim={'mpp':halo_props['mpp']})
-            inp.dtfe_path = out_dir + "/dtfe_dens/"
 
             # make grid maps
             print('making grid maps...')
-            gm_gen = gm.grid_map_generator(inp, sdtfe_exe, overwrite=True)
+            gm_gen = gm.grid_map_generator(inp, overwrite=True) #pass sdtfe_exe
             gm_gen.read_cutout_particles()
             gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
                                             output_dens_tiffs=True, output_density=True, 

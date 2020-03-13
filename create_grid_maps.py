@@ -348,7 +348,7 @@ class grid_map_generator():
             if(image_out == True): image_out = 1
             else: image_out = 0
 
-            plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * xc3 * 2)
+            plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * rp_center * 2)
             mc_box_width = plane_width/ncc/4
             plane_depth = np.max(x3in)-np.min(x3in)
             
@@ -395,7 +395,7 @@ class grid_map_generator():
         # factor of a^-2 in kappa to get sdens_cmpch in proper area
         # convergence dimensionless 
         self.print('computing convergence')
-        kappa = sdens_cmpch * (1+zl_median)**2 / cf.sigma_crit(zl_median,zs)
+        kappa = sdens_cmpch * (1+zl_median)**2 / cm.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
 

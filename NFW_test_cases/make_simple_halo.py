@@ -172,7 +172,7 @@ class simple_halo:
 
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
             ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
-            ax2.set_ylabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
+            ax2.set_yl:wqaabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
             plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
             plt.show()
 
@@ -233,4 +233,4 @@ class simple_halo:
 if __name__ == '__main__':
     hh = simple_halo(m200c = 1e14, z = 0.3)
     hh.populate_halo(N = 10000, rfrac = 6)
-    hh.output_particles(vis_debug=True)
+    hh.output_particles(vis_debug=False)

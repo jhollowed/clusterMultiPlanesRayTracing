@@ -11,7 +11,9 @@ import cosmology as cm
 # ======================================= base inputs class ============================================
 
 class halo_inputs():
-    def __init__(self, halo_cutout_parent_dir, output_dir, halo_id = None, cosmo=None, sim=None): 
+    def __init__(self, halo_cutout_parent_dir, 
+                 output_dir, dtfe_out_dir=None, xj_out_dir=None, 
+                 halo_id=None, cosmo=None, sim=None): 
     
         #----------------------------------- inputs paths --------------------------------------
 
@@ -58,8 +60,12 @@ class halo_inputs():
         #--------------------------------- outputs --------------------------------------------
 
         self.outputs_path = output_dir
-        self.dtfe_path = self.outputs_path + "/dtfe_dens/"
-        self.xj_path = self.outputs_path + "/xj/"
+        if(dtfe_out_dir is None):
+            self.dtfe_path = self.outputs_path + "/dtfe_dens/"
+        else: self.dtfe_path = dtfe_out_dir
+        if(xj_out_dir is None):
+            self.xj_path = self.outputs_path + "/xj/"
+        else: self.xj_path = xj_out_dir
 
         # create dirs, copy properties file if necessary
         for path in [self.outputs_path, self.dtfe_path, self.xj_path]:
@@ -72,18 +78,22 @@ class halo_inputs():
 # ======================================= single lens place inputs =====================================
 
 class single_plane_inputs(halo_inputs):
-    def __init__(self, halo_cutout_parent_dir, output_dir, halo_id = None, cosmo=None, sim=None):
-        halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, halo_id, cosmo, sim)
+    def __init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir=None, xj_out_dir=None, 
+                 halo_id=None, cosmo=None, sim=None):
+        halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir, xj_out_dir, 
+                             halo_id, cosmo, sim)
         self.num_lens_planes = 1
 
 
 # ======================================= multi lens place inputs =====================================
 
 class multi_plane_inputs(halo_inputs): 
-    def __init__(self, halo_cutout_parent_dir, output_dir, min_depth=0, max_depth = None, 
-                 safe_zone=20.0, mean_lens_width=70, halo_id = None, cosmo=None, sim=None):
+    def __init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir=None, xj_out_dir=None, 
+                 min_depth=0, max_depth = None, safe_zone=20.0, mean_lens_width=70, halo_id = None, 
+                 cosmo=None, sim=None):
         
-        halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, halo_id, cosmo, sim)
+        halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir, xj_out_dir, 
+                             halo_id, cosmo, sim)
 
         #-------------------------------- cutout quantities ------------------------------------
         
