@@ -190,7 +190,6 @@ class simple_halo:
         # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). Replace rfrac*r200c
         # by the radial distance to the furthest particle, to be safe.
         fov_size = (np.max(r) / np.sqrt(2))
-        pdb.set_trace()
         self._write_prop_file(fov_size, output_dir)
     
     
@@ -216,8 +215,9 @@ class simple_halo:
 
         # find the angular scale corresponding to fov_r200c * r200c in proper Mpc at the redshift of the halo
         boxRadius_Mpc = fov_radius
-        trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60
+        trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60 * (self.redshift+1)
         boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
+        pdb.set_trace()
 
         cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, '\
                'sod_halo_cdelta, sod_halo_cdelta_error, halo_lc_x, halo_lc_y, halo_lc_z, '\
