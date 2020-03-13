@@ -67,6 +67,7 @@ class simple_halo:
         # these to be filled by populate_halo()
         self.profile_particles = None
         self.mpp = None
+        self.max_rfrac = None
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
         cosmo_colossus = colcos.setCosmology('OuterRim',
@@ -103,13 +104,13 @@ class simple_halo:
                                                           halo_radius = rfrac * self.r200ch)
         self.profile_particles = r / self.cosmo.h
         self.mpp = self.m200c / N
+        self.max_rfrac = rfrac
     
     
     # -----------------------------------------------------------------------------------------------
          
         
-    def output_particles(self, output_dir='./nfw_particle_realization', fov_size_in_r200c=6, 
-                         vis_debug=False, vis_output_dir=None):
+    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
         """
         Computes three dimensional quantities for particles sampled along radial dimension. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -121,8 +122,6 @@ class simple_halo:
         ----------
         output_dir : string
             The desired output location for the binary files
-        fov_size_in_r200c : float, optional
-            The fraction of r200c to set the field of view width. Defaults to 6.
         vis_debug : bool
             If True, display a 3d plot of the particles to be output for visual inspection
         vis_output_dir : string
@@ -183,6 +182,14 @@ class simple_halo:
         theta_sky.astype('f').tofile('{}/theta.bin'.format(output_dir))
         phi_sky.astype('f').tofile('{}/phi.bin'.format(output_dir))
         redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
+
+        # the halo prop file records half the radius of the square FOV, which sets the scale for the density
+        # estimation... we don't want the FOV to include any space outside of the region we have populated with
+        # halos, else the density estiamtion will plummet at the boundary. Above, we populated the halo with
+        # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
+        # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2).
+        # Trim this scale by 5% to be safe.
+        fov_size_in_r200c = ((self.rfrac * self.r200c) / np.sqrt(2)) * 0.95
         self._write_prop_file(fov_size_in_r200c, output_dir)
     
     
@@ -216,10 +223,6 @@ class simple_halo:
                'boxRadius_Mpc, boxRadius_arcsec, mpp'
         props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
                           0, 0, 0, self.halo_r, boxRadius_Mpc, boxRadius_arcsec, self.mpp])
-        
-        # temporary VVV
-        #props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
-        #                  0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
        
         np.savetxt('{}/properties.csv'.format(output_dir), [props],
                    fmt='%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 

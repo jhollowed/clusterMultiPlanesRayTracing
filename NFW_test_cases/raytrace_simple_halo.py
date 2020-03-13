@@ -218,4 +218,5 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, lo
 if __name__ == '__main__':
     
     halo_raytrace(zs = [float(sys.argv[1])])
-    #vis_outputs()
+    vis_outputs(lensing_dir = os.path.abspath('./lensing_output/lensmaps_zs{}'.format(sys.argv[1])))
+
