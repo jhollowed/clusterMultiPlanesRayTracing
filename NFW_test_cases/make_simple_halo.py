@@ -188,8 +188,8 @@ class simple_halo:
         # halos, else the density estiamtion will plummet at the boundary. Above, we populated the halo with
         # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
         # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). Replace rfrac*r200c
-        # by the radial distance to the furthest particle, to be safe.
-        fov_size = (np.max(r) / np.sqrt(2))
+        # by the radial distance to the furthest particle and trim by 5%, to be safe.
+        fov_size = 0.95 * (np.max(r) / np.sqrt(2))
         self._write_prop_file(fov_size, output_dir)
     
     
