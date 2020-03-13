@@ -34,7 +34,7 @@ class simple_halo:
         Parameters
         ----------
         m200c : float
-            The mass of the halo within a radius containing 200*rho_crit, in M_sun/h
+            The mass of the halo within a radius containing 200*rho_crit, in M_sun
         redshift : float 
             The redshift of the halo.
         c : float, optional 
@@ -56,8 +56,13 @@ class simple_halo:
         self.redshift = z
         self.m200c = m200c
         self.cosmo = cosmo
+
+        # halo tools and colossus expect masses in Mpc/h, so scale accordingly on input and output
+        self.m200ch = self.m200c * cosmo.h
+
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
-        self.r200c = self.profile.halo_mass_to_halo_radius(self.m200c) #physical Mpc/h
+        self.r200ch = self.profile.halo_mass_to_halo_radius(self.m200ch) #proper Mpc/h
+        self.r200c = self.r200ch / cosmo.h # proper Mpc
 
         # these to be filled by populate_halo()
         self.profile_particles = None
@@ -67,7 +72,7 @@ class simple_halo:
         cosmo_colossus = colcos.setCosmology('OuterRim',
                          {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
                           'ns':0.963, 'relspecies':False})
-        c_u = mass_conc(m200c, '200c', z, model='child18')
+        c_u = mass_conc(self.m200ch, '200c', z, model='child18')
         c_sig = c_u/3
         self.c = np.random.normal(loc=c_u, scale=c_sig)
 
@@ -94,9 +99,9 @@ class simple_halo:
        
         # the radial positions in comoving Mpc/h
         
-        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac*self.c, 
-                                                          halo_radius = rfrac*self.r200c)
-        self.profile_particles = r
+        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac * self.c, 
+                                                          halo_radius = rfrac * self.r200ch)
+        self.profile_particles = r / self.cosmo.h
         self.mpp = self.m200c / N
     
     
@@ -138,24 +143,22 @@ class simple_halo:
         v = np.random.uniform(low=0, high=1, size = len(r))
         theta = np.arccos(2*v-1)
         
-        # the radial positions are in Mpc/h, though astropy expects Mpc, so modify the argument
-        # multiply the h back through after computing
-        self.halo_r = self.cosmo.comoving_distance(self.redshift).value*self.cosmo.h
+        # now find projected positions wrt origin after pushing halo down x-axis (Mpc and arcsec)
+        self.halo_r = self.cosmo.comoving_distance(self.redshift).value
         x = r *  np.sin(theta) * np.cos(phi) + self.halo_r
         y = r *  np.sin(theta) * np.sin(phi)
         z = r *  np.cos(theta)
-        # now find projected positions wrt origin after pushing halo down x-axis (Mpc/h and arcsec)
         r_sky = np.linalg.norm([x,y,z], axis=0)
         theta_sky = np.arccos(z/r_sky) * 180/np.pi * 3600
         phi_sky = np.arctan(y/x) * 180/np.pi * 3600
-        
-        # this also expects Mpc rather than Mpc/h
-        zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc)/self.cosmo.h)
-        zmax = z_at_value(self.cosmo.comoving_distance, ((x.max()+0.1)*u.Mpc)/self.cosmo.h)
+       
+        # get particle redshifts
+        zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc))
+        zmax = z_at_value(self.cosmo.comoving_distance, ((x.max()+0.1)*u.Mpc))
         z_samp = np.linspace(zmin, zmax, 10)
         x_samp = self.cosmo.comoving_distance(z_samp).value
         invfunc = scipy.interpolate.interp1d(x_samp, z_samp)
-        redshift = invfunc(x/self.cosmo.h)
+        redshift = invfunc(r_sky)
 
         if(vis_debug):
             f = plt.figure(figsize=(12,6))
@@ -171,7 +174,7 @@ class simple_halo:
             ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
             ax2.set_ylabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
             plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
-            #plt.show()
+            plt.show()
 
         # write out all to binary
         x.astype('f').tofile('{}/x.bin'.format(output_dir))
@@ -203,21 +206,22 @@ class simple_halo:
             location of this module.
         """
 
-        # find the angular scale corresponding to fov_r200c * r200c proper Mpc/h at the redshift of the halo
-        boxRadius_Mpch = R*self.r200c
-        trans_Mpch_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3/self.cosmo.h)/60
-        boxRadius_arcsec = boxRadius_Mpch/trans_Mpch_per_arcsec
+        # find the angular scale corresponding to fov_r200c * r200c in proper Mpc at the redshift of the halo
+        boxRadius_Mpc = R*self.r200c
+        trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60
+        boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
 
         cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, '\
                'sod_halo_cdelta, sod_halo_cdelta_error, halo_lc_x, halo_lc_y, halo_lc_z, '\
                'boxRadius_Mpc, boxRadius_arcsec, mpp'
-        #props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
-        #                  0, 0, 0, self.halo_r, boxRadius_Mpch, boxRadius_arcsec, self.mpp])
+        props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
+                          0, 0, 0, self.halo_r, boxRadius_Mpc, boxRadius_arcsec, self.mpp])
         
         # temporary VVV
-        props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
-                          0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
-        np.savetxt('{}/properties.csv'.format(output_dir), [props], 
+        #props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
+        #                  0, 0, 0, self.halo_r, 3.42311, 500, self.mpp])
+       
+        np.savetxt('{}/properties.csv'.format(output_dir), [props],
                    fmt='%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', 
                    delimiter=',',header=cols)
 

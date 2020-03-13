@@ -34,10 +34,10 @@ class halo_inputs():
         #--------------------------------- cutout quantities -----------------------------------
         
         self.halo_redshift = float(self.halo_props['halo_redshift'])
-        self.halo_mass = int(self.halo_props['sod_halo_mass'])
+        self.halo_mass = int(self.halo_props['sod_halo_mass']) #solMass
         self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree
         self.bsz_mpc = float(self.halo_props['boxRadius_Mpc']*2) # Mpc
-        self.mpp = self.sim['mpp'] 
+        self.mpp = self.sim['mpp'] #solMass
         
         #--------------------------------- lensing params -------------------------------------
 
