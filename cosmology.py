@@ -31,7 +31,7 @@ def calc_mpp(L, cosmo, Np):
     pc = cosmo.critical_density(0).to(u.solMass/u.Mpc**3)
     pm = pc*cosmo.Om0
     V = ((L/cosmo.h)*u.Mpc)**3
-    return (pm * V) / Np * cosmo.h
+    return (pm * V) / Np
 
 OuterRim_setup = {'z_init':200, 'sim_steps':500, 'L':3000, 'mpp':calc_mpp(3000, cosmo, 10240**3), 'name':'OuterRim'}
 sim = OuterRim_setup
@@ -45,12 +45,12 @@ def update_sim(new_sim):
 
 # Nan previously had a +1e-8 in Dc2() and Da2(), so check that if a zero error occurs in the cfuncs
 def Dc(z):
-    return cosmo.comoving_distance(z).value*cosmo.h
+    return cosmo.comoving_distance(z).value
 def Dc2(z1,z2):
     return Dc(z2) - Dc(z2)
 
 def Da(z):
-    return cosmo.angular_diameter_distance(z).value*cosmo.h
+    return cosmo.angular_diameter_distance(z).value
 def Da2(z1,z2):
     return (Da(z2) - Da(z1))
 
@@ -63,7 +63,15 @@ def projected_rho_mean(z1, z2):
     
     d1 = cosmo.comoving_distance(z1).value
     d2 = cosmo.comoving_distance(z2).value
-    return rho_mean_0 * (d2-d1) / cosmo.h
+    return rho_mean_0 * (d2-d1)
+
+
+def sigma_crit(zl, zs):
+    # return the critical surface density for the lensing geometry of a lens-source pair
+    # at redshifts z1 and z2, respectively, in proper (M_sun) / (Mpc)**2 
+    sigma_crit = vc*vc/(4.0*np.pi*G)*Da(zs)/(Da(zl)*Da2(zl,zs))
+    return sigma_crit * (1+zl)**2
+
 
 def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
     """
