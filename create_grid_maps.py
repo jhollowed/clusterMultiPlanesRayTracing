@@ -96,10 +96,17 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def read_cutout_particles(self):
+    def read_cutout_particles(self, inv_h = True):
         '''
         Read in the particle positions and redshifts given in the cutout directory pointed to by the 
         halo input object, `self.inp`.
+
+        Parameters
+        ----------
+        inv_h : boolean, optional
+            Whether or not to remove a factor of H_0/100 from the particle positons; if input is HACC simulation 
+            data, then this should be True. Otherwise, it can be False, as long as the user has ensured that the 
+            input data is in Mpc (no little-h dependency).
         '''
         
         columns = ['redshift', 'x', 'y', 'z', 'theta', 'phi']
@@ -114,6 +121,14 @@ class grid_map_generator():
             else: 
                 arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
+
+        if(inv_h = True):
+            self.zp_los = self.zp_los / self.inp.cosmo.h
+            self.xxp_los = self.xxp_los / self.inp.cosmo.h
+            self.yyp_los = self.yyp_los / self.inp.cosmo.h
+            self.zzp_los = self.zzp_los / self.inp.cosmo.h
+            self.tp_los = self.tp_los / self.inp.cosmo.h
+            self.pp_los = self.pp_los / self.inp.cosmo.h
 
 
     # ------------------------------------------------------------------------------------------------------

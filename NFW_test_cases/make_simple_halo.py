@@ -98,13 +98,17 @@ class simple_halo:
             (concentration will be scaled as well, as c=r200c/r_s). Defaults to 1
         """
        
-        # the radial positions in comoving Mpc/h
         
+        # the radial positions in proper Mpc
         r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac * self.c, 
                                                           halo_radius = rfrac * self.r200ch)
         self.profile_particles = r / self.cosmo.h
-        self.mpp = self.m200c / N
         self.max_rfrac = rfrac
+        
+        # mass per particle is set by the m200 mass of the halo... if rfrac was greater than 1, then
+        # to keep the mass definition consistent, we must trim the generated partciles to r200c
+        N_inside_r200c = N - np.sum(r > self.r200c)
+        self.mpp = self.m200c / N_inside_r200c 
     
     
     # -----------------------------------------------------------------------------------------------
