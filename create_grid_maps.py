@@ -122,7 +122,7 @@ class grid_map_generator():
                 arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
 
-        if(inv_h = True):
+        if(inv_h == True):
             self.zp_los = self.zp_los / self.inp.cosmo.h
             self.xxp_los = self.xxp_los / self.inp.cosmo.h
             self.yyp_los = self.yyp_los / self.inp.cosmo.h

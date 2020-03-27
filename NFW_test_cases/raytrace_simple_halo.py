@@ -84,7 +84,7 @@ def halo_raytrace(halo_dir = os.path.abspath('./nfw_particle_realization'),
             # make grid maps
             print('making grid maps...')
             gm_gen = gm.grid_map_generator(inp, overwrite=True) #pass sdtfe_exe
-            gm_gen.read_cutout_particles()
+            gm_gen.read_cutout_particles(inv_h = False)
             gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
                                             output_dens_tiffs=True, output_density=True, 
                                             output_positions=True)
@@ -218,5 +218,5 @@ def shear_vis_mocks(inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, lo
 if __name__ == '__main__':
     
     halo_raytrace(zs = [float(sys.argv[1])])
-    vis_outputs(lensing_dir = os.path.abspath('./lensing_output/lensmaps_zs{}'.format(sys.argv[1])))
+    #vis_outputs(lensing_dir = os.path.abspath('./lensing_output/lensmaps_zs{}'.format(sys.argv[1])))
 
