@@ -410,7 +410,8 @@ class grid_map_generator():
         # factor of a^-2 in kappa to get sdens_cmpch in proper area
         # convergence dimensionless 
         self.print('computing convergence')
-        kappa = sdens_cmpch * (1+zl_median)**2 / cm.sigma_crit(zl_median,zs)
+        sigma_proper = sdens_cmpch * (1+zl_median)**2
+        kappa = sigma_proper / cm.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
 
@@ -441,4 +442,4 @@ class grid_map_generator():
         shear1 = 0.5*(al11 - al22)
         shear2 = 0.5*(al12 + al21)
 
-        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sdens_cmpch
+        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sigma_proper
