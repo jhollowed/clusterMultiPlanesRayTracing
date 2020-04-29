@@ -7,10 +7,13 @@ import numpy as np
 import ctypes as ct
 import cosmology as cm
 
-# this will have to be manually toggled for running on mac with gcc9, or running on alcf
-gcc9 = True
+# this will have to be manually toggled for running on mac with gcc9, or running on cooley
+gcc9 = False
 gcc9_str = ''
 if gcc9: gcc9_str = '9'
+
+# locationg of SDTFE; also needs to be manually toggled if running somewhere other than cooley
+sdtfe_exe = '/home/hollowed/utils/SDTFE/cooley/dtfe'
 
 here = os.path.abspath(os.path.dirname(__file__))
 lib_path = os.path.join(here, 'lib/lib_gcc{}/'.format(gcc9_str))

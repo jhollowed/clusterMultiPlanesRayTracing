@@ -35,7 +35,7 @@ class cd:
 
 class grid_map_generator():
 
-    def __init__(self, inp, sdtfe_exe = '/home/hollowed/repos/SDTFE/cooley/dtfe', overwrite=False, stdout=True):
+    def __init__(self, inp, overwrite=False, stdout=True):
         '''
         This class implements functions for constructing lensing grid maps on a particle lightcone cutout.
         After initializing with a `halo_inputs` object, the LOS particle data should be read with 
@@ -46,9 +46,6 @@ class grid_map_generator():
         inp : halo_inputs instance
             An object instance of a class from halo_inputs (either single_plane_inputs or multi_plane_inputs),
             giving run parameters and read/write directories
-        sdtfe_exe : string
-            Location of STDFE executable to call for desnity estiamtion. Defaults to Cooley build. 
-            Change `...SDTFE/cooley/dtfe` to `...SDTFE/mira/dtfe` if running in a BG/Q system.
         overwrite : bool
             Whether or not to overwrite old outputs. Defaults to False (will crash if HDF5 file exists)
         stdout : bool
@@ -65,7 +62,7 @@ class grid_map_generator():
             self.c_out = None
         
         # define dtfe exec and get inputs
-        self.dtfe_exe = sdtfe_exe
+        self.dtfe_exe = cf.sdtfe_exe
         self.inp = inp
         self.pdir = self.inp.input_prtcls_dir
         self.multiplane = isinstance(inp, halo_inputs.multi_plane_inputs)

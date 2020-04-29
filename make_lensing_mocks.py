@@ -21,7 +21,7 @@ def printflush(s):
 
 class lensing_mock_generator():
 
-    def __init__(self, inp, overwrite=False, stdout=True):
+    def __init__(self, inp, overwrite=False, stdout=True, seed=None):
         '''
         This class implements functions for creating lensing mocks via interpolation on ray-traced maps.
         After initializing with a `halo_inputs` object, the raytraced lensing maps computed from the lens 
@@ -38,6 +38,9 @@ class lensing_mock_generator():
         stdout : bool, optional
             Whether or not to supress print statements (useful for parallel runs). `False` means all
             print statements will be suppressed. Defaults to `True`.
+        seed : float, optional
+            Random seed for placement of interpolation points on lensing maps. Default value of None gives 
+            stochastic results. This value only used if make_lensing_mocks is called with n_places != 'grid'.
         '''
         
         if(stdout == False): self.print = lambda s: None
@@ -59,6 +62,25 @@ class lensing_mock_generator():
         self.raytrace_file = None
         self.source_planes = None
         self.source_plane_keys = None
+
+        self.seed = seed
+    
+    
+    # ------------------------------------------------------------------------------------------------------
+    
+    
+    def _random(self, N):
+        '''
+        Draw a random number from a uniform distribution bounded by [0.0, 1.0), using
+        the seed set in the constructor
+        
+        Parameters
+        ----------
+        N : int
+            number of values to draw
+        '''
+        rand = np.random.RandomState(self.seed)
+        return rand.rand(N)
     
     
     # ------------------------------------------------------------------------------------------------------
@@ -135,8 +157,8 @@ class lensing_mock_generator():
         if hasattr(nsrcs, '__call__'): 
             box_arcmin2 = (self.inp.bsz_arc / 60) ** 2
             Nz = (nsrcs(zs) * box_arcmin2).astype(int)
-            ys1_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
-            ys2_arrays = np.array([np.random.random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
+            ys1_arrays = np.array([self._random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
+            ys2_arrays = np.array([self._random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
         
         elif(type(nsrcs)==int and n_places=='grid'):
             grid = np.meshgrid(np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)), 
@@ -145,9 +167,9 @@ class lensing_mock_generator():
             ys2_arrays = np.array([np.ravel(grid[1]) for i in range(len(zs))])
         
         elif(type(nsrcs)==int and n_places=='rand'):
-            ys1_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            ys1_arrays = np.array([self._random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
-            ys2_arrays = np.array([np.random.random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            ys2_arrays = np.array([self._random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
        
         self.print('created out file {}'.format(self.out_file.filename))
