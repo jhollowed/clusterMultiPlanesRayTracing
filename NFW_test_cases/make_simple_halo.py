@@ -235,9 +235,7 @@ class simple_halo:
 
 # ======================================================================================================
 
-
-# default configuration
-if __name__ == '__main__':
-    hh = simple_halo(m200c = 1e14, z = 0.3)
-    hh.populate_halo(N = 10000, rfrac = 6)
-    hh.output_particles(vis_debug=True)
+# example usage
+#hh = simple_halo(m200c = 1e14, z = 0.3)
+#hh.populate_halo(N = 10000, rfrac = 6)
+#hh.output_particles(vis_debug=True)
