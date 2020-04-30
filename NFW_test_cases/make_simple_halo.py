@@ -76,49 +76,15 @@ class simple_halo:
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
         self.seed = seed
+        rand = np.random.RandomState(self.seed)
+        
         cosmo_colossus = colcos.setCosmology('OuterRim',
                          {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
                           'ns':0.963, 'relspecies':False})
         c_u = mass_conc(self.m200ch, '200c', z, model='child18')
         c_sig = c_u/3
-        self.c = self._randn(loc=c_u, scale=c_sig)
-    
-    
-    # -----------------------------------------------------------------------------------------------
-
-
-    def _randn(self, loc, scale):
-        '''
-        Draw a random number from a normal distribution with specified scale and location, using
-        the class' seed
-        
-        Parameters
-        ----------
-        loc : float
-            location
-        scale : float
-            scale
-        '''
-        rand = np.random.RandomState(self.seed)
-        return rand.normal(loc=loc, scale=scale)
-    
-    def _randu(self, low, high, size):
-        '''
-        Draw a random number from a uniform distribution with specified bounds, using
-        the class' seed
-        
-        Parameters
-        ----------
-        low : float
-            lower bound
-        high : float
-            upper bound
-        siza : int
-            number of samples to draw
-        '''
-        rand = np.random.RandomState(self.seed)
-        return rand.uniform(low=low, high=high, size=size)
-    
+        self.c = rand.normal(loc=c_u, scale=c_sig)
+     
     
     # -----------------------------------------------------------------------------------------------
 
@@ -143,7 +109,7 @@ class simple_halo:
         
         # the radial positions in proper Mpc
         r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac * self.c, 
-                                                          halo_radius = rfrac * self.r200ch, seed=self.seed)
+                                                          halo_radius = rfrac * self.r200ch, seed=self.seed+1)
         self.profile_particles = r / self.cosmo.h
         self.max_rfrac = rfrac
         
@@ -183,11 +149,12 @@ class simple_halo:
         # Note that this is not the same as a uniform distribution in theta and phi 
         # over [0, pi] and [0, 2pi], since the area element on a sphere is a function of 
         # the coaltitude! See http://mathworld.wolfram.com/SpherePointPicking.html
+        
         r = self.profile_particles
-        #phi = np.random.uniform(low=0, high=2*np.pi, size = len(r))
-        #v = np.random.uniform(low=0, high=1, size = len(r))
-        phi = self._randu(low=0, high=2*np.pi, size = len(r))
-        v = self._randu(low=0, high=1, size = len(r))
+        
+        rand = np.random.RandomState(self.seed) 
+        phi = rand.uniform(low=0, high=2*np.pi, size = len(r))
+        v = rand.uniform(low=0, high=1, size = len(r))
         theta = np.arccos(2*v-1)
         
         # now find projected positions wrt origin after pushing halo down x-axis (Mpc and arcsec)

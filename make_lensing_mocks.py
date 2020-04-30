@@ -67,23 +67,6 @@ class lensing_mock_generator():
     
     
     # ------------------------------------------------------------------------------------------------------
-    
-    
-    def _random(self, N):
-        '''
-        Draw a random number from a uniform distribution bounded by [0.0, 1.0), using
-        the seed set in the constructor
-        
-        Parameters
-        ----------
-        N : int
-            number of values to draw
-        '''
-        rand = np.random.RandomState(self.seed)
-        return rand.rand(N)
-    
-    
-    # ------------------------------------------------------------------------------------------------------
         
         
     def read_raytrace_planes(self):
@@ -155,10 +138,11 @@ class lensing_mock_generator():
         # if nsrcs is an int and n_places=grid, then place the sources on a uniform grid over the fov
         # if nsrcs is an int and n_places=rand, then randomly populate source planes with uniform density
         if hasattr(nsrcs, '__call__'): 
-            box_arcmin2 = (self.inp.bsz_arc / 60) ** 2
+            rand = np.random.RandomState(self.seed)
+            ox_arcmin2 = (self.inp.bsz_arc / 60) ** 2
             Nz = (nsrcs(zs) * box_arcmin2).astype(int)
-            ys1_arrays = np.array([self._random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
-            ys2_arrays = np.array([self._random(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
+            ys1_arrays = np.array([rand.rand(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
+            ys2_arrays = np.array([rand.rand(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
         
         elif(type(nsrcs)==int and n_places=='grid'):
             grid = np.meshgrid(np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)), 
@@ -167,9 +151,10 @@ class lensing_mock_generator():
             ys2_arrays = np.array([np.ravel(grid[1]) for i in range(len(zs))])
         
         elif(type(nsrcs)==int and n_places=='rand'):
-            ys1_arrays = np.array([self._random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            rand = np.random.RandomState(self.seed)
+            ys1_arrays = np.array([rand.rand(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
-            ys2_arrays = np.array([self._random(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
+            ys2_arrays = np.array([rand.rand(nsrcs)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 
                                    for i in range(len(zs))])
        
         self.print('created out file {}'.format(self.out_file.filename))
@@ -182,7 +167,6 @@ class lensing_mock_generator():
             zkey = self.source_plane_keys[i]
 
             self.print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
-           
 
             # get positions at this source plane
             ys1_array = ys1_arrays[i]
@@ -205,7 +189,7 @@ class lensing_mock_generator():
             sr1_array = cf.call_inverse_cic_single(sf1,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             sr2_array = cf.call_inverse_cic_single(sf2,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
-
+           
             mfa = cf.alphas_to_mu(af1, af2, self.inp.bsz_arc, self.inp.nnn)
             mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             

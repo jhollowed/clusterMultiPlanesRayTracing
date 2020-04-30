@@ -200,7 +200,7 @@ class raytracer:
         
         f2 = plt.figure()
         ax3 = f2.add_subplot(111)
-        _shear_vis_mocks(inp, np.array(x1), np.array(x2), -np.array(s1), np.array(s2), 
+        self._shear_vis_mocks(inp, np.array(x1), np.array(x2), -np.array(s1), np.array(s2), 
                         np.array(gmaps_k0), fig=f2, ax=ax3, zs=np.array(zs), cm=cm, log=False)
         axes = [ax1, ax2, ax3]
         for i in range(len(axes)):
