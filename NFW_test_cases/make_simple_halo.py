@@ -23,7 +23,7 @@ import cosmology as cm
 # =========================================================================================
 
 
-class simple_halo:
+class NFW:
     def __init__(self, m200c, z, cosmo=cm.OuterRim_params, seed=None):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
@@ -62,7 +62,7 @@ class simple_halo:
         self.m200c = m200c
         self.cosmo = cosmo
 
-        # halo tools and colossus expect masses in Mpc/h, so scale accordingly on input and output
+        # HaloTools and Colossus expect masses in Mpc/h, so scale accordingly on input and output
         self.m200ch = self.m200c * cosmo.h
 
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
@@ -70,9 +70,12 @@ class simple_halo:
         self.r200c = self.r200ch / cosmo.h # proper Mpc
 
         # these to be filled by populate_halo()
-        self.profile_particles = None
+        self.r = None
+        self.theta = None
+        self.phi = None
         self.mpp = None
         self.max_rfrac = None
+        self.populated = False
 
         # draw a concentration from gaussian with scale and location defined by Child+2018
         self.seed = seed
@@ -106,17 +109,27 @@ class simple_halo:
             (concentration will be scaled as well, as c=r200c/r_s). Defaults to 1
         """
        
+        self.populated = True
         
         # the radial positions in proper Mpc
         r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = rfrac * self.c, 
                                                           halo_radius = rfrac * self.r200ch, seed=self.seed+1)
-        self.profile_particles = r / self.cosmo.h
+        self.r = r / self.cosmo.h
         self.max_rfrac = rfrac
         
         # mass per particle is set by the m200 mass of the halo... if rfrac was greater than 1, then
         # to keep the mass definition consistent, we must trim the generated partciles to r200c
         N_inside_r200c = N - np.sum(r > self.r200c)
         self.mpp = self.m200c / N_inside_r200c 
+        
+        # now let's add in uniform random positions in the angular coordinates as well
+        # Note that this is not the same as a uniform distribution in theta and phi 
+        # over [0, pi] and [0, 2pi], since the area element on a sphere is a function of 
+        # the coaltitude! See http://mathworld.wolfram.com/SpherePointPicking.html 
+        rand = np.random.RandomState(self.seed) 
+        v = rand.uniform(low=0, high=1, size = len(r))
+        self.phi = rand.uniform(low=0, high=2*np.pi, size = len(r))
+        self.theta = np.arccos(2*v-1)
     
     
     # -----------------------------------------------------------------------------------------------
@@ -139,36 +152,25 @@ class simple_halo:
         vis_output_dir : string
             The desired output location for matplotlib figures images, if vis_debug is True
         """
-       
+        
+        if(self.populated == False):
+            raise RuntimeError('populate_halo must be called before output_particles')
         if(vis_output_dir is None): vis_output_dir = output_dir
         if not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
 
-        # the particles are already randomly populating an NFW profile, now let's add
-        # in uniform random positions in the angular coordinates as well
-        # Note that this is not the same as a uniform distribution in theta and phi 
-        # over [0, pi] and [0, 2pi], since the area element on a sphere is a function of 
-        # the coaltitude! See http://mathworld.wolfram.com/SpherePointPicking.html
-        
-        r = self.profile_particles
-        
-        rand = np.random.RandomState(self.seed) 
-        phi = rand.uniform(low=0, high=2*np.pi, size = len(r))
-        v = rand.uniform(low=0, high=1, size = len(r))
-        theta = np.arccos(2*v-1)
-        
         # now find projected positions wrt origin after pushing halo down x-axis (Mpc and arcsec)
         self.halo_r = self.cosmo.comoving_distance(self.redshift).value
-        x = r *  np.sin(theta) * np.cos(phi) + self.halo_r
-        y = r *  np.sin(theta) * np.sin(phi)
-        z = r *  np.cos(theta)
+        x = self.r *  np.sin(self.theta) * np.cos(self.phi) + self.halo_r
+        y = self.r *  np.sin(self.theta) * np.sin(self.phi)
+        z = self.r *  np.cos(self.theta)
         r_sky = np.linalg.norm([x,y,z], axis=0)
         theta_sky = np.arccos(z/r_sky) * 180/np.pi * 3600
         phi_sky = np.arctan(y/x) * 180/np.pi * 3600
        
         # get particle redshifts
-        zmin = z_at_value(self.cosmo.comoving_distance, ((x.min()-0.1)*u.Mpc))
-        zmax = z_at_value(self.cosmo.comoving_distance, ((x.max()+0.1)*u.Mpc))
+        zmin = z_at_value(self.cosmo.comoving_distance, ((r_sky.min()-0.1)*u.Mpc))
+        zmax = z_at_value(self.cosmo.comoving_distance, ((r_sky.max()+0.1)*u.Mpc))
         z_samp = np.linspace(zmin, zmax, 10)
         x_samp = self.cosmo.comoving_distance(z_samp).value
         invfunc = scipy.interpolate.interp1d(x_samp, z_samp)
@@ -202,8 +204,8 @@ class simple_halo:
         # estimation... we don't want the FOV to include any space outside of the region we have populated with
         # halos, else the density estiamtion will plummet at the boundary. Above, we populated the halo with
         # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
-        # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). Replace rfrac*r200c
-        # by the radial distance to the furthest particle and trim by 5%, to be safe.
+        # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). 
+        # Replace rfrac*r200c by the radial distance to the furthest particle and trim by 5%, to be safe.
         fov_size = 0.95 * (np.max(r) / np.sqrt(2))
         self._write_prop_file(fov_size, output_dir)
     

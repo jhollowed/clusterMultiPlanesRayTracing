@@ -122,7 +122,7 @@ class raytracer:
             halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
             inp = inps.single_plane_inputs(halo_dir, out_dir, 
                                            dtfe_out_dir = '{}/dtfe_dens'.format(out_dir),
-                                           halo_id='nfw_realization', sim={'mpp':halo_props['mpp']})
+                                           halo_id=halo_dir.split('/')[-1], sim={'mpp':halo_props['mpp']})
 
             # make grid maps
             print('making grid maps...')
