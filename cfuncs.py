@@ -74,7 +74,7 @@ def call_sph_sdens_weight(x1,x2,x3,mp,Bsz,Ncc):
 # ---------------------------------------------------------------------------------
 
 
-claim the types of the arguments of the function in the c library
+# claim the types of the arguments of the function in the c library
 sps.cal_sph_sdens_weight_omp.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
                                         np.ctypeslib.ndpointer(dtype = ct.c_float), \
                                         np.ctypeslib.ndpointer(dtype = ct.c_float), \
@@ -84,7 +84,7 @@ sps.cal_sph_sdens_weight_omp.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_floa
                                         np.ctypeslib.ndpointer(dtype = ct.c_float), \
                                         np.ctypeslib.ndpointer(dtype = ct.c_float), \
                                         np.ctypeslib.ndpointer(dtype = ct.c_float)]
-claim the type of the return of the function in the c library
+# claim the type of the return of the function in the c library
 sps.cal_sph_sdens_weight_omp.restype  = ct.c_int
 
 def call_sph_sdens_weight_omp(x1,x2,x3,mp,Bsz,Nc):
@@ -442,7 +442,7 @@ def call_cart_to_bary(pt,v0,v1,v2):
         Outputs:
             * res is a vector with three elements [lambda1, lambda2, lambda3] presenting the barycentric coordinates.
     '''
-    pt_in = np.array(pt,dtype=ct.c_double)d
+    pt_in = np.array(pt,dtype=ct.c_double)
     v0_in = np.array(v0,dtype=ct.c_double)
     v1_in = np.array(v1,dtype=ct.c_double)
     v2_in = np.array(v2,dtype=ct.c_double)
