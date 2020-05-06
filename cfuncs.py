@@ -25,26 +25,23 @@ apr = cm.apr
 # ---------------------------------------------------------------------------------
 
 
-# # load in the c library for calculating surface density maps using SPH
-# #
-# sps = ct.CDLL(lib_path+"lib_so_sph_w_omp/libsphsdens.so")
+# load in the c library for calculating surface density maps using SPH
+sps = ct.CDLL(lib_path+"lib_so_sph_w_omp/libsphsdens.so")
+# claim the types of the arguments of the function in the c library
+sps.cal_sph_sdens_weight.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    ct.c_float,ct.c_long,ct.c_float,ct.c_long,ct.c_long, \
+                                    ct.c_float,ct.c_float,ct.c_float, \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_float)]
 
-# # claim the types of the arguments of the function in the c library
-# sps.cal_sph_sdens_weight.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # ct.c_float,ct.c_long,ct.c_float,ct.c_long,ct.c_long, \
-                                    # ct.c_float,ct.c_float,ct.c_float, \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_float)]
-
-# # claim the type of the return of the function in the c library
-# sps.cal_sph_sdens_weight.restype  = ct.c_int
-
-# def call_sph_sdens_weight(x1,x2,x3,mp,Bsz,Ncc):
-    # '''
+# claim the type of the return of the function in the c library
+sps.cal_sph_sdens_weight.restype  = ct.c_int
+def call_sph_sdens_weight(x1,x2,x3,mp,Bsz,Ncc):
+    '''
         # Wrap the cfunction using python
         # Inputs:
             # * x1, x2, x3 are arrays of the positions of particles
@@ -54,70 +51,72 @@ apr = cm.apr
         # Outputs:
             # * the return of this function is the normalized surface density map
               # to the tatal mass of all the particles involved in this calculation.
-    # '''
-    # x1_in = np.array(x1,dtype=ct.c_float)
-    # x2_in = np.array(x2,dtype=ct.c_float)
-    # x3_in = np.array(x3,dtype=ct.c_float)
-    # mp_in = np.array(mp,dtype=ct.c_float)
-    # dcl = ct.c_float(Bsz/Ncc)
-    # Ngb = ct.c_long(16)
-    # xc1 = ct.c_float(0.0)
-    # xc2 = ct.c_float(0.0)
-    # xc3 = ct.c_float(0.0)
-    # Np  = len(mp)
-    # posx1 = np.zeros((Ncc,Ncc),dtype=ct.c_float)
-    # posx2 = np.zeros((Ncc,Ncc),dtype=ct.c_float)
-    # sdens = np.zeros((Ncc,Ncc),dtype=ct.c_float)
+    '''
+    x1_in = np.array(x1,dtype=ct.c_float)
+    x2_in = np.array(x2,dtype=ct.c_float)
+    x3_in = np.array(x3,dtype=ct.c_float)
+    mp_in = np.array(mp,dtype=ct.c_float)
+    dcl = ct.c_float(Bsz/Ncc)
+    Ngb = ct.c_long(16)
+    xc1 = ct.c_float(0.0)
+    xc2 = ct.c_float(0.0)
+    xc3 = ct.c_float(0.0)
+    Np  = len(mp)
+    posx1 = np.zeros((Ncc,Ncc),dtype=ct.c_float)
+    posx2 = np.zeros((Ncc,Ncc),dtype=ct.c_float)
+    sdens = np.zeros((Ncc,Ncc),dtype=ct.c_float)
 
-    # sps.cal_sph_sdens_weight(x1_in,x2_in,x3_in,mp_in,ct.c_float(Bsz),ct.c_long(Ncc),dcl,Ngb,ct.c_long(Np),xc1,xc2,xc3,posx1,posx2,sdens);
-    # return sdens*mp.sum()/(sdens.sum()*dcl*dcl)
+    sps.cal_sph_sdens_weight(x1_in, x2_in, x3_in, mp_in, ct.c_float(Bsz), ct.c_long(Ncc), dcl,
+                             Ngb,ct.c_long(Np), xc1, xc2, xc3, posx1, posx2, sdens);
+    return sdens*mp.sum()/(sdens.sum()*dcl*dcl)
 
 
 # ---------------------------------------------------------------------------------
 
 
-# # claim the types of the arguments of the function in the c library
-# sps.cal_sph_sdens_weight_omp.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # ct.c_float,ct.c_long,ct.c_float,ct.c_long,ct.c_long, \
-                                        # ct.c_float,ct.c_float,ct.c_float, \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                                        # np.ctypeslib.ndpointer(dtype = ct.c_float)]
-# # claim the type of the return of the function in the c library
-# sps.cal_sph_sdens_weight_omp.restype  = ct.c_int
+claim the types of the arguments of the function in the c library
+sps.cal_sph_sdens_weight_omp.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        ct.c_float,ct.c_long,ct.c_float,ct.c_long,ct.c_long, \
+                                        ct.c_float,ct.c_float,ct.c_float, \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                                        np.ctypeslib.ndpointer(dtype = ct.c_float)]
+claim the type of the return of the function in the c library
+sps.cal_sph_sdens_weight_omp.restype  = ct.c_int
 
-# def call_sph_sdens_weight_omp(x1,x2,x3,mp,Bsz,Nc):
-    # '''
-        # Wrap the cfunction using python.
-        # This function is similar to the above one except
-        # including OpenMP to boost the calculation.
-        # Inputs:
-            # * x1, x2, x3 are arrays of the positions of particles
-            # * mp is an array of the mass of particles
-            # * Bsz is the box size of the surface density map
-            # * Ncc is the number of cells per side of the map
-        # Outputs:
-            # * the return of this function is the normalized surface density map
-              # to the tatal mass of all the particles involved in this calculation.
-    # '''
-    # x1_in = np.array(x1,dtype=ct.c_float)
-    # x2_in = np.array(x2,dtype=ct.c_float)
-    # x3_in = np.array(x3,dtype=ct.c_float)
-    # mp_in = np.array(mp,dtype=ct.c_float)
-    # dcl = ct.c_float(Bsz/Nc)
-    # Ngb = ct.c_long(16)
-    # xc1 = ct.c_float(0.0)
-    # xc2 = ct.c_float(0.0)
-    # xc3 = ct.c_float(0.0)
-    # Np  = len(mp)
-    # posx1 = np.zeros((Nc,Nc),dtype=ct.c_float)
-    # posx2 = np.zeros((Nc,Nc),dtype=ct.c_float)
-    # sdens = np.zeros((Nc,Nc),dtype=ct.c_float)
-    # sps.cal_sph_sdens_weight_omp(x1_in,x2_in,x3_in,mp_in,ct.c_float(Bsz),ct.c_long(Nc),dcl,Ngb,ct.c_long(Np),xc1,xc2,xc3,posx1,posx2,sdens);
-    # return sdens*mp.sum()/(sdens.sum()*dcl*dcl)
+def call_sph_sdens_weight_omp(x1,x2,x3,mp,Bsz,Nc):
+    '''
+        Wrap the cfunction using python.
+        This function is similar to the above one except
+        including OpenMP to boost the calculation.
+        Inputs:
+            * x1, x2, x3 are arrays of the positions of particles
+            * mp is an array of the mass of particles
+            * Bsz is the box size of the surface density map
+            * Ncc is the number of cells per side of the map
+        Outputs:
+            * the return of this function is the normalized surface density map
+              to the tatal mass of all the particles involved in this calculation.
+    '''
+    x1_in = np.array(x1,dtype=ct.c_float)
+    x2_in = np.array(x2,dtype=ct.c_float)
+    x3_in = np.array(x3,dtype=ct.c_float)
+    mp_in = np.array(mp,dtype=ct.c_float)
+    dcl = ct.c_float(Bsz/Nc)
+    Ngb = ct.c_long(16)
+    xc1 = ct.c_float(0.0)
+    xc2 = ct.c_float(0.0)
+    xc3 = ct.c_float(0.0)
+    Np  = len(mp)
+    posx1 = np.zeros((Nc,Nc),dtype=ct.c_float)
+    posx2 = np.zeros((Nc,Nc),dtype=ct.c_float)
+    sdens = np.zeros((Nc,Nc),dtype=ct.c_float)
+    sps.cal_sph_sdens_weight_omp(x1_in, x2_in, x3_in, mp_in, ct.c_float(Bsz), ct.c_long(Nc), dcl, Ngb,
+                                 ct.c_long(Np), xc1, xc2, xc3, posx1, posx2, sdens);
+    return sdens*mp.sum()/(sdens.sum()*dcl*dcl)
 
 
 # ---------------------------------------------------------------------------------
@@ -190,69 +189,69 @@ def call_kappa0_to_alphas_p(Kappa, Bsz, Ncc):
 # ---------------------------------------------------------------------------------
 
 
-# lzos = ct.CDLL(lib_path+"lib_so_lzos/liblzos.so")
-# lzos.lanczos_diff_2_tag.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                                    # ct.c_double,ct.c_int,ct.c_int]
-# lzos.lanczos_diff_2_tag.restype  = ct.c_void_p
+lzos = ct.CDLL(lib_path+"lib_so_lzos/liblzos.so")
+lzos.lanczos_diff_2_tag.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                                    ct.c_double,ct.c_int,ct.c_int]
+lzos.lanczos_diff_2_tag.restype  = ct.c_void_p
 
-# def call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc):
-    # '''
-        # Calculate alpha11, alpha12, alpha21, alpha22 using the Lanczos Derivative
-        # Inputs:
-            # * alpha1 is an 2D-array presenting the deflection angle map along x-axis, in the units of arcsec.
-            # * alpha2 is an 2D-array presenting the deflection angle map along y-axis, in the units of arcsec.
-            # * Bsz is the box size of the surface density mapi, in the units of arcsec.
-            # * Ncc is the number of cells per side of the map, in the units of arcsec.
-        # Outputs:
-            # * m11 is alpha_dx_dx.
-            # * m12 is alpha_dx_dy.
-            # * m21 is alpha_dy_dx.
-            # * m22 is alpha_dy_dy.
-    # '''
-    # dif_tag = 2
-    # dcl = Bsz/Ncc
-    # m1 = np.array(alpha1,dtype=ct.c_double)
-    # m2 = np.array(alpha2,dtype=ct.c_double)
-    # m11 = m1*0.0
-    # m12 = m1*0.0
-    # m21 = m2*0.0
-    # m22 = m2*0.0
-    # lzos.lanczos_diff_2_tag(m1,m2,m11,m12,m21,m22,ct.c_double(dcl),ct.c_int(Ncc),ct.c_int(dif_tag))
-    # return m11,m12,m21,m22
+def call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc):
+    '''
+        Calculate alpha11, alpha12, alpha21, alpha22 using the Lanczos Derivative
+        Inputs:
+            * alpha1 is an 2D-array presenting the deflection angle map along x-axis, in the units of arcsec.
+            * alpha2 is an 2D-array presenting the deflection angle map along y-axis, in the units of arcsec.
+            * Bsz is the box size of the surface density mapi, in the units of arcsec.
+            * Ncc is the number of cells per side of the map, in the units of arcsec.
+        Outputs:
+            * m11 is alpha_dx_dx.
+            * m12 is alpha_dx_dy.
+            * m21 is alpha_dy_dx.
+            * m22 is alpha_dy_dy.
+    '''
+    dif_tag = 2
+    dcl = Bsz/Ncc
+    m1 = np.array(alpha1,dtype=ct.c_double)
+    m2 = np.array(alpha2,dtype=ct.c_double)
+    m11 = m1*0.0
+    m12 = m1*0.0
+    m21 = m2*0.0
+    m22 = m2*0.0
+    lzos.lanczos_diff_2_tag(m1, m2, m11, m12, m21, m22, ct.c_double(dcl), ct.c_int(Ncc), ct.c_int(dif_tag))
+    return m11,m12,m21,m22
 
 
 # ---------------------------------------------------------------------------------
 
 
-# sngp = ct.CDLL(lib_path + "lib_so_omp_ngp/libngp.so")
-# sngp.ngp_w_rebin.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                            # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                            # np.ctypeslib.ndpointer(dtype = ct.c_float), \
-                            # ct.c_int,ct.c_float,ct.c_float,ct.c_float, \
-                            # ct.c_int,ct.c_int, \
-                            # np.ctypeslib.ndpointer(dtype = ct.c_float)]
+sngp = ct.CDLL(lib_path + "lib_so_omp_ngp/libngp.so")
+sngp.ngp_w_rebin.argtypes =[np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                            np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                            np.ctypeslib.ndpointer(dtype = ct.c_float), \
+                            ct.c_int,ct.c_float,ct.c_float,ct.c_float, \
+                            ct.c_int,ct.c_int, \
+                            np.ctypeslib.ndpointer(dtype = ct.c_float)]
 
-# sngp.ngp_w_rebin.restype  = ct.c_int
+sngp.ngp_w_rebin.restype  = ct.c_int
 
-# def call_ngp_w_rebin(x1,x2,mpp,Bsz,Nc):
+def call_ngp_w_rebin(x1,x2,mpp,Bsz,Nc):
 
-    # Np  = ct.c_int(mpp.size)
-    # dcl = ct.c_float(Bsz/Nc)
-    # xc1 = ct.c_float(0.0)
-    # xc2 = ct.c_float(0.0)
-    # x1 = np.array(x1,dtype=ct.c_float)
-    # x2 = np.array(x2,dtype=ct.c_float)
-    # mpp= np.array(mpp,dtype=ct.c_float)
+    Np  = ct.c_int(mpp.size)
+    dcl = ct.c_float(Bsz/Nc)
+    xc1 = ct.c_float(0.0)
+    xc2 = ct.c_float(0.0)
+    x1 = np.array(x1,dtype=ct.c_float)
+    x2 = np.array(x2,dtype=ct.c_float)
+    mpp= np.array(mpp,dtype=ct.c_float)
 
-    # sdens = np.zeros((Nc,Nc),dtype=ct.c_float)
+    sdens = np.zeros((Nc,Nc),dtype=ct.c_float)
 
-    # sngp.ngp_w_rebin(x1,x2,mpp,Np,xc1,xc2,dcl,ct.c_int(Nc),ct.c_int(Nc),sdens)
-    # return sdens
+    sngp.ngp_w_rebin(x1, x2, mpp, Np, xc1, xc2, dcl, ct.c_int(Nc), ct.c_int(Nc), sdens)
+    return sdens
 
 
 # ---------------------------------------------------------------------------------
@@ -399,88 +398,88 @@ def call_inverse_cic_single_omp(img_in,yc1,yc2,yi1,yi2,dsi):
 # ---------------------------------------------------------------------------------
 
 
-# tri = ct.CDLL(lib_path+"lib_so_tri_roots/libtri.so")
-# tri.PIT.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                    # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                    # np.ctypeslib.ndpointer(dtype = ct.c_double)]
-# tri.PIT.restype  = ct.c_bool
+tri = ct.CDLL(lib_path+"lib_so_tri_roots/libtri.so")
+tri.PIT.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                    np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                    np.ctypeslib.ndpointer(dtype = ct.c_double)]
+tri.PIT.restype  = ct.c_bool
 
-# def call_PIT(pt,v0,v1,v2):
-    # '''
-        # Determine whether a point pt is located in a triangle with vertexes [v0, v1, v2]
-        # Inputs:
-            # * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
-            # * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
-        # Outputs:
-            # * res is a bool to conclude whether the point is in or not..
-    # '''
-    # pt_in = np.array(pt,dtype=ct.c_double)
-    # v0_in = np.array(v0,dtype=ct.c_double)
-    # v1_in = np.array(v1,dtype=ct.c_double)
-    # v2_in = np.array(v2,dtype=ct.c_double)
-    # res = tri.PIT(pt_in,v0_in,v1_in,v2_in)
-    # return res
-
-
-# ---------------------------------------------------------------------------------
-
-
-# tri.Cart2Bary.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double)]
-# tri.Cart2Bary.restype  = ct.c_void_p
-
-# def call_cart_to_bary(pt,v0,v1,v2):
-    # '''
-        # convert cartasian coordinate of a point pt and three vertexes [v0, v1, v2]
-        # to the corresponding barycentric coordinates [lambda1, lambda2, lambda3]
-        # Inputs:
-            # * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
-            # * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
-        # Outputs:
-            # * res is a vector with three elements [lambda1, lambda2, lambda3] presenting the barycentric coordinates.
-    # '''
-    # pt_in = np.array(pt,dtype=ct.c_double)d
-    # v0_in = np.array(v0,dtype=ct.c_double)
-    # v1_in = np.array(v1,dtype=ct.c_double)
-    # v2_in = np.array(v2,dtype=ct.c_double)
-    # bary_out = np.array([0,0,0],dtype=ct.c_double)
-    # tri.Cart2Bary(pt_in,v0_in,v1_in,v2_in,bary_out)
-    # return bary_out
+def call_PIT(pt,v0,v1,v2):
+    '''
+        Determine whether a point pt is located in a triangle with vertexes [v0, v1, v2]
+        Inputs:
+            * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
+            * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
+        Outputs:
+            * res is a bool to conclude whether the point is in or not..
+    '''
+    pt_in = np.array(pt,dtype=ct.c_double)
+    v0_in = np.array(v0,dtype=ct.c_double)
+    v1_in = np.array(v1,dtype=ct.c_double)
+    v2_in = np.array(v2,dtype=ct.c_double)
+    res = tri.PIT(pt_in, v0_in, v1_in, v2_in)
+    return res
 
 
 # ---------------------------------------------------------------------------------
 
 
-# tri.bary2cart.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double), \
-                          # np.ctypeslib.ndpointer(dtype = ct.c_double)]
-# tri.bary2cart.restype  = ct.c_void_p
+tri.Cart2Bary.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double)]
+tri.Cart2Bary.restype  = ct.c_void_p
 
-# def call_bary_to_cart(v0,v1,v2,bary):
-    # '''
-        # Convert barycentric coordinate [lambda1, lambda2, lambda3]
-        # to cartasian coordinate of a point [pt1, pt2] according to three vertexes [v0, v1, v2].
-        # Inputs:
-            # * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
-            # * bary is a vector with three elements [lambda1, lambda2, lambda3] presenting the barycentric coordinates.
-        # Outputs:
-            # * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
-    # '''
-    # v0_in = np.array(v0,dtype=ct.c_double)
-    # v1_in = np.array(v1,dtype=ct.c_double)
-    # v2_in = np.array(v2,dtype=ct.c_double)
-    # bary_in = np.array(bary,dtype=ct.c_double)
+def call_cart_to_bary(pt,v0,v1,v2):
+    '''
+        convert cartasian coordinate of a point pt and three vertexes [v0, v1, v2]
+        to the corresponding barycentric coordinates [lambda1, lambda2, lambda3]
+        Inputs:
+            * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
+            * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
+        Outputs:
+            * res is a vector with three elements [lambda1, lambda2, lambda3] presenting the barycentric coordinates.
+    '''
+    pt_in = np.array(pt,dtype=ct.c_double)d
+    v0_in = np.array(v0,dtype=ct.c_double)
+    v1_in = np.array(v1,dtype=ct.c_double)
+    v2_in = np.array(v2,dtype=ct.c_double)
+    bary_out = np.array([0,0,0],dtype=ct.c_double)
+    tri.Cart2Bary(pt_in, v0_in, v1_in, v2_in, bary_out)
+    return bary_out
 
-    # pt_out = np.array([0,0],dtype=ct.c_double)
 
-    # tri.bary2cart(v0_in,v1_in,v2_in,bary_in,pt_out)
-    # return pt_out
+# ---------------------------------------------------------------------------------
+
+
+tri.bary2cart.argtypes = [np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double), \
+                          np.ctypeslib.ndpointer(dtype = ct.c_double)]
+tri.bary2cart.restype  = ct.c_void_p
+
+def call_bary_to_cart(v0,v1,v2,bary):
+    '''
+        Convert barycentric coordinate [lambda1, lambda2, lambda3]
+        to cartasian coordinate of a point [pt1, pt2] according to three vertexes [v0, v1, v2].
+        Inputs:
+            * v0, v1, v2 are vectors, e.g., [v01, v02], presenting the coordinates of the vertexes of the triangle..
+            * bary is a vector with three elements [lambda1, lambda2, lambda3] presenting the barycentric coordinates.
+        Outputs:
+            * pt is the a vector [p1, p2] presenting the coordinate of the testing point.
+    '''
+    v0_in = np.array(v0,dtype=ct.c_double)
+    v1_in = np.array(v1,dtype=ct.c_double)
+    v2_in = np.array(v2,dtype=ct.c_double)
+    bary_in = np.array(bary,dtype=ct.c_double)
+
+    pt_out = np.array([0,0],dtype=ct.c_double)
+
+    tri.bary2cart(v0_in, v1_in, v2_in, bary_in, pt_out)
+    return pt_out
 
 
 # ---------------------------------------------------------------------------------
@@ -671,13 +670,13 @@ def al_zs1_to_zs2(ai, ZLENS, ZSRC1, ZSRC2):
 # ---------------------------------------------------------------------------------
 
 
-# def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
-    # al11,al12,al21,al22 = call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc)
+def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
+    al11,al12,al21,al22 = call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc)
 
-    # al11[:2, :] = 0.0;al11[-2:,:] = 0.0;al11[:, :2] = 0.0;al11[:,-2:] = 0.0
-    # al12[:2, :] = 0.0;al12[-2:,:] = 0.0;al12[:, :2] = 0.0;al12[:,-2:] = 0.0
-    # al21[:2, :] = 0.0;al21[-2:,:] = 0.0;al21[:, :2] = 0.0;al21[:,-2:] = 0.0
-    # al22[:2, :] = 0.0;al22[-2:,:] = 0.0;al22[:, :2] = 0.0;al22[:,-2:] = 0.0
+    al11[:2, :] = 0.0;al11[-2:,:] = 0.0;al11[:, :2] = 0.0;al11[:,-2:] = 0.0
+    al12[:2, :] = 0.0;al12[-2:,:] = 0.0;al12[:, :2] = 0.0;al12[:,-2:] = 0.0
+    al21[:2, :] = 0.0;al21[-2:,:] = 0.0;al21[:, :2] = 0.0;al21[:,-2:] = 0.0
+    al22[:2, :] = 0.0;al22[-2:,:] = 0.0;al22[:, :2] = 0.0;al22[:,-2:] = 0.0
 
-    # res = 1.0/(al11*al22-(al11+al22)-al12*al21+1.0)
-    # return res
+    res = 1.0/(al11*al22-(al11+al22)-al12*al21+1.0)
+    return res
