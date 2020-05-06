@@ -321,8 +321,8 @@ class grid_map_generator():
             try:
                 # read in density result
                 self.print('reading density')
-                sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
-                sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
+                sdens_comoving = np.fromfile('{}.rho.bin'.format(dtfe_file))
+                sdens_comoving = sdens_comoving.reshape(ncc, ncc)
             except FileNotFoundError: 
                 self.print('Cant skip density calculation for plane {}; doesnt exist'.format(idx))
                 noskip = True
@@ -381,33 +381,33 @@ class grid_map_generator():
                 subprocess.run(dtfe_args, stdout=self.c_out)
             
             # read in result
-            # sdens_cmpch is comoving surface density of this lens plane in M_sun/Mpc^2
-            sdens_cmpch = np.fromfile('{}.rho.bin'.format(dtfe_file))
-            sdens_cmpch = sdens_cmpch.reshape(ncc, ncc)
+            # sdens_comoving is comoving surface density of this lens plane in M_sun/Mpc^2
+            sdens_comoving = np.fromfile('{}.rho.bin'.format(dtfe_file))
+            sdens_comoving = sdens_comoving.reshape(ncc, ncc)
 
             # make sure we can recover particle mass from the density to 10%
-            inferred_mpp = np.sum(sdens_cmpch * (plane_width/ncc)**2) / len(x1in)
+            inferred_mpp = np.sum(sdens_comoving * (plane_width/ncc)**2) / len(x1in)
             fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
             #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
              
         # uncomment line below to use SPH rather than DTFE
-        #sdens_cmpch = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
+        #sdens_comoving = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
        
-        # subtract mean density from sdens_cmpch
+        # subtract mean density from sdens_comoving
         if(subtract_mean):
             rho_mean = cm.projected_rho_mean(np.min(zp), np.max(zp))
-            mean_diff = np.mean(sdens_cmpch) / rho_mean
-            sdens_cmpch -= rho_mean
+            mean_diff = np.mean(sdens_comoving) / rho_mean
+            sdens_comoving -= rho_mean
             self.print('Measured/theory mean is {}'.format(mean_diff))
 
         # ----------------------- convergence maps and positions -----------------------------
         
-        # sdens_cmpch expected in comoving M_sun/Mpc^2
+        # sdens_comoving expected in comoving M_sun/Mpc^2
         # sigma_crit in proper M_sun/Mpc^2
-        # factor of a^-2 in kappa to get sdens_cmpch in proper area
+        # factor of a^-2 in kappa to get sdens_comoving in proper area
         # convergence dimensionless 
         self.print('computing convergence')
-        sigma_proper = sdens_cmpch * (1+zl_median)**2
+        sigma_proper = sdens_comoving * (1+zl_median)**2
         kappa = sigma_proper / cm.sigma_crit(zl_median,zs)
          
         # ----------------------- defelection maps ------------------------------
