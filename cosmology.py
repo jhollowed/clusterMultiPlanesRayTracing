@@ -10,6 +10,7 @@ from astropy.cosmology import FlatLambdaCDM
 
 
 # ------------------ constants ------------------
+
 # c in km/s
 # G in Mpc/h (Msun/h)^-1 (km/s)^2
 # apr is arsec per radian
@@ -70,8 +71,24 @@ def projected_rho_mean(z1, z2):
 def sigma_crit(zl, zs):
     # return the critical surface density for the lensing geometry of a lens-source pair
     # at redshifts z1 and z2, respectively, in proper (M_sun) / (Mpc)**2 
-    sigma_crit = vc*vc/(4.0*np.pi*G)*Da(zs)/(Da(zl)*Da2(zl,zs))
-    return sigma_crit * (1+zl)**2
+    sigma_crit = vc*vc/(4.0*np.pi*G) * Da(zs)/(Da(zl)*Da2(zl,zs))
+    return sigma_crit
+
+    # from Nan:
+    '''
+    ######
+    ### This part is a kind of issue.
+    ### If you use angular diameter distances "Da"" and "Da2" in this function,
+    ### you should not include "(1+zl)**2" in the return.
+    ### In my previous function, I used comoving distances when I calculated surface density maps with particles,
+    ### which means the units of surface density is "Msol/cMpc^2", then I have to include (1+zl)**2
+    ### to convert the units to "Msol/Mpc". The definitions of cMpc and Mpc are comoving distance and physical distance.
+    ### Therefore, you have to remove the (1+zl)**2 here.
+    ### After removing it, If you used the cMpc in the calculation of surface density,
+    ### then the calculation should be fine, however,if you used Mpc in calculation of suface density,
+    ### then the results will be wrong, Can you please double check it?
+    ######
+    '''
 
 
 def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
