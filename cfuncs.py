@@ -1,6 +1,7 @@
 #---------------------------------------------------------------------------------
 # Call C functions
 #
+import pdb
 import sys,os
 import halo_inputs as inp
 import numpy as np
@@ -671,6 +672,7 @@ def al_zs1_to_zs2(ai, ZLENS, ZSRC1, ZSRC2):
 
 
 def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
+
     al11,al12,al21,al22 = call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc)
 
     al11[:2, :] = 0.0;al11[-2:,:] = 0.0;al11[:, :2] = 0.0;al11[:,-2:] = 0.0
