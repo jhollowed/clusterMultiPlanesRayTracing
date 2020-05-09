@@ -120,7 +120,11 @@ class NFW:
         # mass per particle is set by the m200 mass of the halo... if rfrac was greater than 1, then
         # to keep the mass definition consistent, we must trim the generated partciles to r200c
         N_inside_r200c = N - np.sum(r > self.r200c)
-        self.mpp = self.m200c / N_inside_r200c 
+        self.mpp = self.m200c / N_inside_r200c
+
+        # radial positions need to be in comoving coordiantes, as the kappa maps in the raytracing
+        # modules expect the density estimation to be done on a comoving set of particles
+        self.r = self.r * (1+self.redshift)
         
         # now let's add in uniform random positions in the angular coordinates as well
         # Note that this is not the same as a uniform distribution in theta and phi 
