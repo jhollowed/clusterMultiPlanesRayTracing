@@ -110,7 +110,6 @@ class raytracer:
         Generates deflection, convergence, and shear maps for the input particle distribution, and
         interpolates the fields to random positions in the fov to generate mocks.
         '''
-
         halo_dir = self.halo_dir
         out_dir = self.out_dir
         zs = self.zs
@@ -221,7 +220,7 @@ class raytracer:
     # ------------------------------------------------------------------------------------------
 
 
-    def _shear_vis_mocks(self, inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, log=True, cut_core=30):
+    def _shear_vis_mocks(self, inp, x1, x2, shear1, shear2, kappa, fig, ax, cm, zs=None, log=True):
         '''
         Plots the shear vector field 
         '''
@@ -242,8 +241,9 @@ class raytracer:
         scale_shear = 500
         ampli = np.sqrt(g1**2 + g2**2)
         alph = np.arctan2(g2, g1) / 2.0
-        
-        mask = np.sqrt((x1-20)**2+(x2-10)**2) > cut_core
+       
+        cut_core = 10
+        mask = np.sqrt((x1)**2+(x2)**2) > cut_core
         alph = alph[mask]
         ampli = ampli[mask]
         x1 = x1[mask]

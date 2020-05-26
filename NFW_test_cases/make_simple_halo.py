@@ -24,7 +24,7 @@ import cosmology as cm
 
 
 class NFW:
-    def __init__(self, m200c, z, cosmo=cm.OuterRim_params, seed=None):
+    def __init__(self, m200c, z, c=None, cM_err=False, cosmo=cm.OuterRim_params, seed=None):
         """
         Class for generating test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -36,11 +36,16 @@ class NFW:
         ----------
         m200c : float
             The mass of the halo within a radius containing 200*rho_crit, in M_sun
-        redshift : float 
+        z : float 
             The redshift of the halo.
         c : float, optional 
             The concentration of the halo. If not given, samples from a Gaussian 
             with location and scale suggested by the M-c relation of Child+2018
+        cM_err : bool, optional 
+            Whether or not to impose scatter on the cM relation used to draw a concentration, 
+            in the case that the argument c is not passed. If False, the concentration drawn 
+            will always lie exactly on the cM relation used (currently Child+ 2018). Defaults
+            to True.
         cosmo : object, optional
             An AstroPy cosmology object. Defaults to OuterRim parameters.
         seed : float, optional
@@ -76,17 +81,23 @@ class NFW:
         self.mpp = None
         self.max_rfrac = None
         self.populated = False
-
-        # draw a concentration from gaussian with scale and location defined by Child+2018
-        self.seed = seed
-        rand = np.random.RandomState(self.seed)
         
-        cosmo_colossus = colcos.setCosmology('OuterRim',
-                         {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
-                          'ns':0.963, 'relspecies':False})
-        c_u = mass_conc(self.m200ch, '200c', z, model='child18')
-        c_sig = c_u/3
-        self.c = rand.normal(loc=c_u, scale=c_sig)
+        if c is not None:
+            self.c = c
+        else:
+            # if cM_err=True, draw a concentration from gaussian, otherwise use Child+2018 cM relation scatter-free
+            self.seed = seed
+            rand = np.random.RandomState(self.seed)
+            
+            cosmo_colossus = colcos.setCosmology('OuterRim',
+                             {'Om0':cosmo.Om0, 'Ob0':cosmo.Ob0, 'H0':cosmo.H0.value, 'sigma8':0.8, 
+                              'ns':0.963, 'relspecies':False})
+            c_u = mass_conc(self.m200ch, '200c', z, model='child18')
+            if(cM_err):
+                c_sig = c_u/3
+                self.c = rand.normal(loc=c_u, scale=c_sig)
+            else:
+                self.c = c_u
      
     
     # -----------------------------------------------------------------------------------------------
@@ -117,12 +128,17 @@ class NFW:
         self.r = r / self.cosmo.h
         self.max_rfrac = rfrac
         
-        # mass per particle is set by the m200 mass of the halo... if rfrac was greater than 1, then
-        # to keep the mass definition consistent, we must trim the generated partciles to r200c
-        N_inside_r200c = N - np.sum(r > self.r200c)
-        self.mpp = self.m200c / N_inside_r200c
+        # mass per particle is set by the m200 mass of the halo... 
+        # -  if rfrac was greater than 1, simply divide m200c by the number of particles interior to r200c
+        # -  if rfrac is less than 1, then use halotools cumulative_mass_pdf 
+        if(rfrac>1):
+            N_inside_r200c = N - np.sum(r > self.r200c)
+            self.mpp = self.m200c / N_inside_r200c
+        else:
+            mfrac = self.profile.cumulative_mass_PDF(rfrac, self.c)
+            self.mpp = (self.m200c * mfrac) / N
 
-        # radial positions need to be in comoving coordiantes, as the kappa maps in the raytracing
+        # radial positions need to be in comoving comoving coordiantes, as the kappa maps in the raytracing
         # modules expect the density estimation to be done on a comoving set of particles
         self.r = self.r * (1+self.redshift)
         
@@ -194,7 +210,6 @@ class NFW:
             ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
             ax2.set_yl:wqaabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
             plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
-            plt.show()
 
         # write out all to binary
         x.astype('f').tofile('{}/x.bin'.format(output_dir))

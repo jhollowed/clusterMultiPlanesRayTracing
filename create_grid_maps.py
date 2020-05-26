@@ -113,8 +113,8 @@ class grid_map_generator():
         for i in range(len(arrs)):
             if(self.multiplane):
                 for snapid in self.inp.snapid_list:
-                    arrs[i] = np.hstack([arrs[i], np.fromfile('{0}/{2}Cutout{1}/{2}.{1}.bin'.format(
-                                                              self.pdir, snapid, self.pfx, columns[i]), dtype = "f")])
+                    arrs[i] = np.hstack([arrs[i], np.fromfile('{0}/{2}Cutout{1}/{2}.{1}.bin'.format(self.pdir, 
+                                                               snapid, self.pfx, columns[i]), dtype = "f")])
             else: 
                 arrs[i] = np.fromfile('{0}/{1}.bin'.format(self.pdir, columns[i]), dtype = "f")
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
@@ -375,7 +375,7 @@ class grid_map_generator():
                          ]
                         ]
             self.print(dtfe_args)
-            
+           
             # call process
             with cd(self.inp.dtfe_path):
                 subprocess.run(dtfe_args, stdout=self.c_out)
