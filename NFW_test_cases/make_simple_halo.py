@@ -127,16 +127,15 @@ class NFW:
                                                           halo_radius = rfrac * self.r200ch, seed=self.seed+1)
         self.r = r / self.cosmo.h
         self.max_rfrac = rfrac
-        
-        # mass per particle is set by the m200 mass of the halo... 
-        # -  if rfrac was greater than 1, simply divide m200c by the number of particles interior to r200c
-        # -  if rfrac is less than 1, then use halotools cumulative_mass_pdf 
-        if(rfrac>1):
-            N_inside_r200c = N - np.sum(r > self.r200c)
-            self.mpp = self.m200c / N_inside_r200c
-        else:
-            mfrac = self.profile.cumulative_mass_PDF(rfrac, self.c)
-            self.mpp = (self.m200c * mfrac) / N
+
+        # compute mass enclosed to find mass per particle
+        # (this is the analytic integration of the NFW profile in terms of m_200c, assuming c=c_200c)
+        rs = self.r200c / self.c
+        rmax = rfrac * self.r200c
+        n = np.log((rs+rmax)/rs) - rmax/(rmax+rs)
+        d = np.log(1+self.c) - self.c/(1+self.c)
+        M_enc = self.m200c * n/d
+        self.mpp = M_enc / N
 
         # radial positions need to be in comoving comoving coordiantes, as the kappa maps in the raytracing
         # modules expect the density estimation to be done on a comoving set of particles
