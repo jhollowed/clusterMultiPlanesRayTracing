@@ -105,11 +105,18 @@ class raytracer:
     # ------------------------------------------------------------------------------------------
 
 
-    def halo_raytrace(self):
+    def halo_raytrace(self, nsrcs=2000):
         '''
         Generates deflection, convergence, and shear maps for the input particle distribution, and
         interpolates the fields to random positions in the fov to generate mocks.
+
+        Parameters
+        ----------
+        nsrcs : int
+            Number of sources to place on the source plane. Placement will be random, and lensing maps
+            will be interpolated to these positions in generating the lensing mocks. Defaults to 2000.
         '''
+
         halo_dir = self.halo_dir
         out_dir = self.out_dir
         zs = self.zs
@@ -138,7 +145,7 @@ class raytracer:
                
             mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
             mock_gen.read_raytrace_planes()
-            mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = 2000, n_places='rand')
+            mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = nsrcs, n_places = 'rand')
 
 
     # ------------------------------------------------------------------------------------------
