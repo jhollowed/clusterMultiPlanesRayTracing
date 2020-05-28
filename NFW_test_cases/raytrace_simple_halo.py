@@ -142,7 +142,7 @@ class raytracer:
             rt_gen = rt.ray_tracer(inp, overwrite=True)
             rt_gen.read_grid_maps_zs0()
             rt_gen.raytrace_grid_maps_for_zs(ZS=[zs[i]])
-               
+            
             mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
             mock_gen.read_raytrace_planes()
             mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = nsrcs, n_places = 'rand')
