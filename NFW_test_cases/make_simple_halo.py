@@ -103,7 +103,7 @@ class NFW:
     # -----------------------------------------------------------------------------------------------
 
 
-    def populate_halo(self, N=10000, rfrac=1):
+    def populate_halo(self, N=10000, rfrac=1, rfrac_los=None):
         """
         Generates a 3-dimensional relization of the discreteley-sampled NFW mass distribution for
         this halo. The radial positions are obtained with the HaloTools 
@@ -116,8 +116,16 @@ class NFW:
         N : int
             The number of particles to drawn
         rfrac: float, optional
-            Multiplier of r200c which sets the maximum scale of the population
+            Multiplier of r200c which sets the maximum radial extent of the population
             (concentration will be scaled as well, as c=r200c/r_s). Defaults to 1
+        rfrac_los: float, optional
+            Multiplier of r200c which sets the maaximum extent of the population in the line-of-sight (LOS)
+            dimension, i.e. it clips the halo along the LOS. If rfrac_los = 0.5 the LOS dimension of the halo 
+            will be clipped 0.5*r200c toward the observer, and again away from the observer, with respect to 
+            the halo center. Note that this does *not* rescale mpp, and is therefore almost totally useless...
+            the argument is kept for rather specific debugging purposes, but probably should not be used. 
+            Default is None, in which case no clipping is performed. Also if rfrac_los > rfrac, obviously 
+            nothing will happen.
         """
        
         self.populated = True
@@ -149,6 +157,13 @@ class NFW:
         v = rand.uniform(low=0, high=1, size = len(r))
         self.phi = rand.uniform(low=0, high=2*np.pi, size = len(r))
         self.theta = np.arccos(2*v-1)
+        
+        # finally, do los clipping if user requested (in self.output_particles below, the los dimension 
+        # is assumed to be the cartesian x)
+        x = self.r *  np.sin(self.theta) * np.cos(self.phi)
+        if(rfarc_los is not None):
+            los_mask = (np.abs(x)/self.r200c) <= rfrac_los
+            self.r, self.theta, self.phi = self.r[los_mask], self.theta[los_mask], self.phi[los_mask]
     
     
     # -----------------------------------------------------------------------------------------------
