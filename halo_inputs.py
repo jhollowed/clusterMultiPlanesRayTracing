@@ -13,7 +13,7 @@ import cosmology as cm
 class halo_inputs():
     def __init__(self, halo_cutout_parent_dir, 
                  output_dir, dtfe_out_dir=None, xj_out_dir=None, 
-                 halo_id=None, cosmo=None, sim=None): 
+                 halo_id=None, cosmo=None, sim=None, nnn=1024): 
     
         #----------------------------------- inputs paths --------------------------------------
 
@@ -43,7 +43,7 @@ class halo_inputs():
         
         #--------------------------------- lensing params -------------------------------------
 
-        self.nnn = 1024
+        self.nnn = nnn
         self.dsx = self.bsz/self.nnn
         self.bsz_arc = self.bsz*3600.
         self.dsx_arc = self.dsx*3600.

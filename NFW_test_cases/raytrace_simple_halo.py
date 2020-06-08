@@ -105,7 +105,7 @@ class raytracer:
     # ------------------------------------------------------------------------------------------
 
 
-    def halo_raytrace(self, nsrcs=2000):
+    def halo_raytrace(self, nsrcs=2000, lenspix=1024):
         '''
         Generates deflection, convergence, and shear maps for the input particle distribution, and
         interpolates the fields to random positions in the fov to generate mocks.
@@ -126,7 +126,7 @@ class raytracer:
             print('reading inputs...') 
             halo_prop_file = '{}/properties.csv'.format(halo_dir)
             halo_props = np.genfromtxt(halo_prop_file, delimiter=',', names=True)
-            inp = inps.single_plane_inputs(halo_dir, out_dir, 
+            inp = inps.single_plane_inputs(halo_dir, out_dir, nnn=lenspix,
                                            dtfe_out_dir = '{}/dtfe_dens'.format(out_dir),
                                            halo_id=halo_dir.split('/')[-1], sim={'mpp':halo_props['mpp']})
 
