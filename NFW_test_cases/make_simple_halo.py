@@ -161,7 +161,7 @@ class NFW:
         # finally, do los clipping if user requested (in self.output_particles below, the los dimension 
         # is assumed to be the cartesian x)
         x = self.r *  np.sin(self.theta) * np.cos(self.phi)
-        if(rfarc_los is not None):
+        if(rfrac_los is not None):
             los_mask = (np.abs(x)/self.r200c) <= rfrac_los
             self.r, self.theta, self.phi = self.r[los_mask], self.theta[los_mask], self.phi[los_mask]
     

@@ -79,9 +79,9 @@ class halo_inputs():
 
 class single_plane_inputs(halo_inputs):
     def __init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir=None, xj_out_dir=None, 
-                 halo_id=None, cosmo=None, sim=None):
+                 halo_id=None, cosmo=None, sim=None, nnn=1024):
         halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir, xj_out_dir, 
-                             halo_id, cosmo, sim)
+                             halo_id, cosmo, sim, nnn)
         self.num_lens_planes = 1
 
 
@@ -90,10 +90,9 @@ class single_plane_inputs(halo_inputs):
 class multi_plane_inputs(halo_inputs): 
     def __init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir=None, xj_out_dir=None, 
                  min_depth=0, max_depth = None, safe_zone=20.0, mean_lens_width=70, halo_id = None, 
-                 cosmo=None, sim=None):
-        
+                 cosmo=None, sim=None, nnn=1024):
         halo_inputs.__init__(self, halo_cutout_parent_dir, output_dir, dtfe_out_dir, xj_out_dir, 
-                             halo_id, cosmo, sim)
+                             halo_id, cosmo, sim, nnn)
 
         #-------------------------------- cutout quantities ------------------------------------
         
