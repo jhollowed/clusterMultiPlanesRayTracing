@@ -9,7 +9,7 @@ import ctypes as ct
 import cosmology as cm
 
 # this will have to be manually toggled for running on mac with gcc9, or running on cooley
-gcc9 = False
+gcc9 = True
 gcc9_str = ''
 if gcc9: gcc9_str = '9'
 
@@ -672,7 +672,7 @@ def al_zs1_to_zs2(ai, ZLENS, ZSRC1, ZSRC2):
 
 
 def alphas_to_mu(alpha1, alpha2, Bsz, Ncc):
-
+    
     al11,al12,al21,al22 = call_lanczos_derivative(alpha1,alpha2,Bsz,Ncc)
 
     al11[:2, :] = 0.0;al11[-2:,:] = 0.0;al11[:, :2] = 0.0;al11[:,-2:] = 0.0

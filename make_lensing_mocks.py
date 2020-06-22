@@ -169,6 +169,7 @@ class lensing_mock_generator():
             zkey = self.source_plane_keys[i]
 
             self.print('-------- placing {} sources at source plane {} --------'.format(len(ys1_arrays[i]), zkey))
+
             # get positions at this source plane
             ys1_array = ys1_arrays[i]
             ys2_array = ys2_arrays[i]

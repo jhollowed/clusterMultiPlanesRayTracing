@@ -62,6 +62,7 @@ class grid_map_generator():
             self.c_out = None
         
         # define dtfe exec and get inputs
+        self.density_estimator = None # is set by create_grid_maps_for_z0
         self.dtfe_exe = cf.sdtfe_exe
         self.inp = inp
         self.pdir = self.inp.input_prtcls_dir
@@ -131,8 +132,8 @@ class grid_map_generator():
     # ------------------------------------------------------------------------------------------------------
 
 
-    def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, 
-                                 output_dens_tiffs=False, output_density=False, output_positions=False):
+    def create_grid_maps_for_zs0(self, subtract_mean=True, skip_sdens=True, output_dens_tiffs=False, 
+                                 output_density=False, output_positions=False, density_estimator='dtfe'):
         '''
         Perform density estimation via DTFE and compute lensing quantities on the grid 
         for sources at ~infinity. Note: the output files will be closed after this function 
@@ -167,6 +168,11 @@ class grid_map_generator():
             halo's mass is M >= 10^14 M_sun/h. Defaults to False, for storage reasons; this only needs to be
             turned on if the user intends to do profile fitting directly on the individual lens plane grids, 
             otherwise the subsequest raytracing and interpolation will provide these quantities.
+        density_estimator : string, optional
+            String specifying which density estimator to call. Options are `'dtfe'`, in wich case an external
+            system call will be made to the SDTFE C package (with the location of the executable specified
+            in cfuncs.sdtfe_exe), and 'sph', in wich case the density is estimated via an internal C function
+            to apply SPH smoothing kernels to the particle popilation. 
         '''
         
         if(skip_sdens == False): 
@@ -205,6 +211,11 @@ class grid_map_generator():
                 else: output_positions = False
             elif(not isinstance(output_positions, bool)):
                 raise Exception('`output_positions must either be a float or a bool`')
+
+            # check density estimator
+            assert density_estimator in ['dtfe', 'sph'], 'Unknown density estimator {}. Options are'\
+                                                         '\'dtfe\' or \'sph\''.format(density_estimator)
+            self.density_estimator = density_estimator
             
             # compute lensing quantities on the grid from ~infinity (zs0)
             if(self.multiplane):
@@ -315,12 +326,12 @@ class grid_map_generator():
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
 
-        # ---------------------- call DTFE exec for density estimation ---------------------------
-
-        if(skip_sdens == True and noskip == False): 
+        # ---------------------- call SPH func or DTFE exec for density estimation ---------------------------
+        
+        if(skip_sdens == True and noskip == False and self.density_estimator=='dtfe'): 
             try:
                 # read in density result
-                self.print('reading density')
+                self.print('reading DTFE density')
                 sdens_comoving = np.fromfile('{}.rho.bin'.format(dtfe_file))
                 sdens_comoving = sdens_comoving.reshape(ncc, ncc)
             except FileNotFoundError: 
@@ -344,6 +355,7 @@ class grid_map_generator():
 
             rp = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
             rp_center = (np.max(rp)+np.min(rp))*0.5
+            plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * rp_center * 2)
             x3in = rp - rp_center
             
             tp_centered = tp - (np.max(tp)+np.min(tp))*0.5 
@@ -351,48 +363,52 @@ class grid_map_generator():
             
             pp_centered = pp - (np.max(pp)+np.min(pp))*0.5 
             x2in = np.sin((pp_centered)/cm.apr) * rp
+    
+            # ------ do density estiamtion via SPH cfunc ------
+            if(self.density_estimator == 'sph'):
+                self.print('doing SPH density estimation')
+                sdens_comoving = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
             
             # ------ do density estiamtion via system call to SDTFE exe ------
-            # x, y, z in column major
-            dtfe_input_array = np.ravel(np.vstack([x1in, x2in, x3in]))
-            dtfe_input_array.astype('f').tofile(dtfe_file)
-            
-            if(image_out == True): image_out = 1
-            else: image_out = 0
+            elif(self.density_estimator == 'dtfe'):
+                self.print('doing DTFE density estimation')
+                
+                # x, y, z in column major
+                dtfe_input_array = np.ravel(np.vstack([x1in, x2in, x3in]))
+                dtfe_input_array.astype('f').tofile(dtfe_file)
+                
+                if(image_out == True): image_out = 1
+                else: image_out = 0
 
-            plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * rp_center * 2)
-            mc_box_width = plane_width/ncc/4
-            plane_depth = np.max(x3in)-np.min(x3in)
-            
-            # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
-            #               field_width(Mpc) field_depth(Mpc) particle_mass mc_box_width 
-            #               n_mc_samples sample_factor image_out? ]
-            dtfe_args = ["%s"%s for s in 
-                         [self.dtfe_exe,
-                          dtfe_file, len(mpin), ncc, 0, 0, 0, 
-                          plane_width, plane_depth, self.inp.mpp, 
-                          mc_box_width, 4, 1.0, image_out
-                         ]
-                        ]
-            self.print(dtfe_args)
-           
-            # call process
-            with cd(self.inp.dtfe_path):
-                subprocess.run(dtfe_args, stdout=self.c_out)
-            
-            # read in result
-            # sdens_comoving is comoving surface density of this lens plane in M_sun/Mpc^2
-            sdens_comoving = np.fromfile('{}.rho.bin'.format(dtfe_file))
-            sdens_comoving = sdens_comoving.reshape(ncc, ncc)
+                mc_box_width = plane_width/ncc/4
+                plane_depth = np.max(x3in)-np.min(x3in)
+                
+                # Usage: dtfe [ path_to_file n_particles grid_dim center_x center_y center_z 
+                #               field_width(Mpc) field_depth(Mpc) particle_mass mc_box_width 
+                #               n_mc_samples sample_factor image_out? ]
+                dtfe_args = ["%s"%s for s in 
+                             [self.dtfe_exe,
+                              dtfe_file, len(mpin), ncc, 0, 0, 0, 
+                              plane_width, plane_depth, self.inp.mpp, 
+                              mc_box_width, 4, 1.0, image_out
+                             ]
+                            ]
+                self.print(dtfe_args)
+               
+                # call process
+                with cd(self.inp.dtfe_path):
+                    subprocess.run(dtfe_args, stdout=self.c_out)
+                
+                # read in result
+                # sdens_comoving is comoving surface density of this lens plane in M_sun/Mpc^2
+                sdens_comoving = np.fromfile('{}.rho.bin'.format(dtfe_file))
+                sdens_comoving = sdens_comoving.reshape(ncc, ncc)
 
-            # make sure we can recover particle mass from the density to 10%
-            inferred_mpp = np.sum(sdens_comoving * (plane_width/ncc)**2) / len(x1in)
-            fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
-            #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
-             
-        # uncomment line below to use SPH rather than DTFE
-        #sdens_comoving = cm.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
-       
+                # make sure we can recover particle mass from the density to 10%
+                inferred_mpp = np.sum(sdens_comoving * (plane_width/ncc)**2) / len(x1in)
+                fdiff_mpp = (self.inp.mpp - inferred_mpp) / inferred_mpp
+                #assert abs(fdiff_mpp) <= 0.1, "particle mass not recoverable from density estimation!"
+ 
         # subtract mean density from sdens_comoving
         if(subtract_mean):
             rho_mean = cm.projected_rho_mean(np.min(zp), np.max(zp))

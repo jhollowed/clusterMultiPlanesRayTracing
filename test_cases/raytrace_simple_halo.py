@@ -105,16 +105,23 @@ class raytracer:
     # ------------------------------------------------------------------------------------------
 
 
-    def halo_raytrace(self, nsrcs=2000, lenspix=1024):
+    def halo_raytrace(self, nsrcs=2000, lenspix=1024, density_estimator='dtfe'):
         '''
         Generates deflection, convergence, and shear maps for the input particle distribution, and
         interpolates the fields to random positions in the fov to generate mocks.
 
         Parameters
         ----------
-        nsrcs : int
+        nsrcs : int, optional
             Number of sources to place on the source plane. Placement will be random, and lensing maps
             will be interpolated to these positions in generating the lensing mocks. Defaults to 2000.
+        lenspix : int, optional
+            Number of pixels on one side of the FOV. Total number of pixels will be the square of this value.
+        density_estimator : string, optional
+            String specifying which density estimator to call. Options are `'dtfe'`, in wich case an external
+            system call will be made to the SDTFE C package (with the location of the executable specified
+            in cfuncs.sdtfe_exe), and 'sph', in wich case the density is estimated via an internal C function
+            to apply SPH smoothing kernels to the particle popilation. 
         '''
 
         halo_dir = self.halo_dir
@@ -134,18 +141,18 @@ class raytracer:
             print('making grid maps...')
             gm_gen = gm.grid_map_generator(inp, overwrite=True)
             gm_gen.read_cutout_particles(inv_h = False)
-            gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=True, 
+            gm_gen.create_grid_maps_for_zs0(subtract_mean=False, skip_sdens=False, 
                                             output_dens_tiffs=True, output_density=True, 
-                                            output_positions=True)
+                                            output_positions=True, density_estimator=density_estimator)
            
             print('raytracing from z={}...'.format(zs[i]))
             rt_gen = rt.ray_tracer(inp, overwrite=True)
             rt_gen.read_grid_maps_zs0()
             rt_gen.raytrace_grid_maps_for_zs(ZS=[zs[i]])
             
-            mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
-            mock_gen.read_raytrace_planes()
-            mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = nsrcs, n_places = 'rand')
+            #mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
+            #mock_gen.read_raytrace_planes()
+            #mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = nsrcs, n_places = 'rand')
 
 
     # ------------------------------------------------------------------------------------------
