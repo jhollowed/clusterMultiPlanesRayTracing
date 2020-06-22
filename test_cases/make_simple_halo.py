@@ -255,7 +255,7 @@ class NFW:
 
         Parameters
         ----------
-        Rfov_radius : float
+        fov_radius : float
             Half of the square FOV side length (this scale will be used in later calls to the density estaimtor)
 
         output_dir : string, optional
