@@ -157,7 +157,7 @@ class raytracer:
             
             mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
             mock_gen.read_raytrace_planes()
-            mock_gen.make_lensing_mocks(vis_shears=False, nsrcs=nsrcs, n_places=interp_where)gtgtgt
+            mock_gen.make_lensing_mocks(vis_shears=False, nsrcs=nsrcs, n_places=interp_where)
 
 
     # ------------------------------------------------------------------------------------------
