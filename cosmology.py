@@ -3,6 +3,7 @@ This module stores the cosmological model in use; any functions that depend on c
 are defined here, referring to an atropy cosmology object that is global, and can be set
 to something other than the default (Outer Rim) by passing through inps.py
 """
+import pdb
 import numpy as np
 import astropy.units as u
 import astropy.constants as const
@@ -12,9 +13,9 @@ from astropy.cosmology import FlatLambdaCDM
 # ------------------ constants ------------------
 
 # c in km/s
-# G in Mpc/h (Msun/h)^-1 (km/s)^2
+# G in Mpc/Msun (km/s)^2
 # apr is arsec per radian
-vc = const.c.to(u.km/u.s)
+vc = const.c.to(u.km/u.s).value
 G = const.G.to(u.Mpc/u.solMass * u.km**2 / u.s**2).value
 apr = 3600 * 180/(np.pi) 
 
@@ -91,6 +92,23 @@ def sigma_crit(zl, zs):
     '''
 
 
+def schwarzschild_deflection(M, fov_size, nnn):
+    '''
+    '''
+
+    # get proper distances on lens plane of grid points
+    gridpt = np.linspace(-fov_size/2, fov_size/2, nnn)
+    xi1, xi2 = np.meshgrid(gridpt,gridpt)
+    xi = np.linalg.norm([xi1, xi2], axis=0)
+    phi = np.arccos(xi1/xi)
+
+    # deflection components (see Meneghetti's lensing review, Eq. 1.37-1.41)
+    alpha1 = 4*G*M/vc**2 * xi1/xi**2
+    alpha2 = 4*G*M/vc**2 * xi2/xi**2    
+    
+    return alpha1, alpha2
+
+    
 def Nz_Chang2014(z_bin_edges, case='fiducial', sys='blending'):
     """
     Computes the predicted LSST lensing source density, n_eff, in arcmin^-2, per Chang+2014

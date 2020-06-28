@@ -143,7 +143,7 @@ class lensing_mock_generator():
             Nz = (nsrcs(zs) * box_arcmin2).astype(int)
             ys1_arrays = np.array([rand.rand(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
             ys2_arrays = np.array([rand.rand(nn)*self.inp.bsz_arc-self.inp.bsz_arc*0.5 for nn in Nz])
-        
+
         elif(type(nsrcs) in [int, float] and n_places=='grid'):
             nsrcs = int(nsrcs)
             grid = np.meshgrid(np.linspace(-self.inp.bsz_arc/2, self.inp.bsz_arc, np.sqrt(nsrcs)), 
@@ -192,8 +192,8 @@ class lensing_mock_generator():
             sr2_array = cf.call_inverse_cic_single(sf2,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             kr0_array = cf.call_inverse_cic_single(kf0,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
            
-            mfa = cf.alphas_to_mu(af1, af2, self.inp.bsz_arc, self.inp.nnn)
-            mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
+            #mfa = cf.alphas_to_mu(af1, af2, self.inp.bsz_arc, self.inp.nnn)
+            #mra_array = cf.call_inverse_cic_single(mfa,0.0,0.0,xr1_array,xr2_array,self.inp.dsx_arc)
             
             # Save Outputs
             self.out_file.create_group(zkey)

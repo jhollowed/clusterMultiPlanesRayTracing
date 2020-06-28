@@ -105,7 +105,7 @@ class raytracer:
     # ------------------------------------------------------------------------------------------
 
 
-    def halo_raytrace(self, nsrcs=2000, lenspix=1024, density_estimator='dtfe'):
+    def halo_raytrace(self, nsrcs=2000, lenspix=1024, density_estimator='dtfe', interp_where='rand'):
         '''
         Generates deflection, convergence, and shear maps for the input particle distribution, and
         interpolates the fields to random positions in the fov to generate mocks.
@@ -122,6 +122,11 @@ class raytracer:
             system call will be made to the SDTFE C package (with the location of the executable specified
             in cfuncs.sdtfe_exe), and 'sph', in wich case the density is estimated via an internal C function
             to apply SPH smoothing kernels to the particle popilation. 
+        interp_where : bool, optional
+            How to place the sources on the lens plane for mock interpolation; options are:
+            -- 'grid', which places the sources on a grid (this is effectively just a lower resolution version 
+                of the ray-traced maps)
+            -- 'rand', which places the sources by a uniform random ditribution in the angular coordinates 
         '''
 
         halo_dir = self.halo_dir
@@ -150,9 +155,9 @@ class raytracer:
             rt_gen.read_grid_maps_zs0()
             rt_gen.raytrace_grid_maps_for_zs(ZS=[zs[i]])
             
-            #mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
-            #mock_gen.read_raytrace_planes()
-            #mock_gen.make_lensing_mocks(vis_shears = False, nsrcs = nsrcs, n_places = 'rand')
+            mock_gen = mk.lensing_mock_generator(inp, overwrite=True, seed=self.seed)
+            mock_gen.read_raytrace_planes()
+            mock_gen.make_lensing_mocks(vis_shears=False, nsrcs=nsrcs, n_places=interp_where)gtgtgt
 
 
     # ------------------------------------------------------------------------------------------
@@ -244,10 +249,9 @@ class raytracer:
         if(log): 
             kappa = np.log10(kappa)
             kappa[np.isnan(kappa)] = 0
-        mink = min(np.ravel(kappa)[np.ravel(kappa) != 0])
         
         extent=np.array([-1, 1, -1, 1])*inp.bsz_arc/2
-        aimk = ax.imshow(np.log(kappa),aspect='equal',cmap=cm, origin='higher',
+        aimk = ax.imshow(kappa,aspect='equal',cmap=cm, origin='higher',
                   extent=extent)
         cbar1 = fig.colorbar(aimk, ax=ax)
         cbar1.set_label(r'$\mathrm{ln}(\kappa)$', fontsize=12)

@@ -316,15 +316,26 @@ class grid_map_generator():
         ncc = self.inp.nnn
         bsz_mpc = self.inp.bsz_mpc
         bsz_arc = self.inp.bsz_arc
- 
-        # check that plane has at least minimum particles, else return empty plane
         zl_median = np.median(zp)
-        if len(zp) < 10:
-            empty_plane = np.zeros((ncc, ncc), dtype=np.float32)
-            return zl_median, zs, empty_plane, empty_plane, empty_plane, empty_plane, empty_plane
-             
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
+ 
+        # ----------------------------------- handle special cases --------------------------------------------
+
+        if len(zp) == 1 and (self.tp_los[plane_mask]-324000 + self.pp_los[plane_mask])[0] == 0:
+            # single point-mass perfectly centered at origin; solution is analytic
+            # note that this explicitly assumes the current plane is the "halo plane", 
+            # so of this happens by coincidence then big F
+            kappa = np.zeros((ncc, ncc))
+            sigma_proper = np.zeros((ncc, ncc))
+            alpha1, alpha2 = cm.schwarzschild_deflection(mpin[0], self.inp.bsz_mpc, ncc)
+            shear1, shear2 = self._shear_from_alphas(alpha1, alpha2)
+            return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sigma_proper
+        
+        elif len(zp) < 10:
+            # very sparse particle distribution; conside empty
+            empty_plane = np.zeros((ncc, ncc), dtype=np.float32)
+            return zl_median, zs, empty_plane, empty_plane, empty_plane, empty_plane, empty_plane     
 
         # ---------------------- call SPH func or DTFE exec for density estimation ---------------------------
         
@@ -446,8 +457,30 @@ class grid_map_generator():
             # if mean(mass) >> mean(Universe)
             alpha1, alpha2 = cf.call_kappa0_to_alphas(kappa, self.inp.bsz_arc, ncc)
         
-        # ------------------ higher-order lensing maps ----------------------------
+        # ------------------ higher-order lensing maps and return ----------------------------
+        shear1, shear2 = self._shear_from_alphas(alpha1, alpha2)
+        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sigma_proper
+    
+    
+    # ------------------------------------------------------------------------------------------------------
 
+
+    def _shear_from_alphas(self, alpha1, alpha2):
+        '''
+        Compute shear via gradient components of deflection maps
+        
+        Parameters
+        ----------
+        alpha1, alpha2 : 2D float arrays
+            the deflection angles at each grid point; should be of shape (N,N), if N is
+            the number of pixels on a side of the field of view
+
+        Returns
+        -------
+        [shear1, shear2]: 2D float arrays
+            the shears at each grid point, in shape (N,N)
+        '''
+        
         self.print('computing defelctions and shears')
         al11, al12 = np.gradient(alpha1, self.inp.dsx_arc)
         al21, al22 = np.gradient(alpha2, self.inp.dsx_arc)
@@ -455,4 +488,6 @@ class grid_map_generator():
         shear1 = 0.5*(al11 - al22)
         shear2 = 0.5*(al12 + al21)
 
-        return zl_median, zs, kappa, alpha1, alpha2, shear1, shear2, sigma_proper
+        pdb.set_trace()
+        return shear1, shear2
+        
