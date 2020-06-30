@@ -49,7 +49,8 @@ class NFW:
             Whether or not to impose scatter on the cM relation used to draw a concentration, 
             in the case that the argument c is not passed. If False, the concentration drawn 
             will always lie exactly on the cM relation used (currently Child+ 2018). Defaults
-            to True.
+            to True. In either case, the 'sod_halo_cdelta_error' quntity in the output halo propery
+            csv file will be zero.
         cosmo : object, optional
             An AstroPy cosmology object. Defaults to OuterRim parameters.
         seed : float, optional
@@ -73,9 +74,6 @@ class NFW:
         self.redshift = z
         self.cosmo = cosmo
 
-        # HaloTools and Colossus expect masses in Mpc/h, so scale accordingly on input and output
-        self.m200ch = self.m200c * cosmo.h
-
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
         if(r200c is None):
             self.r200ch = self.profile.halo_mass_to_halo_radius(self.m200ch) #proper Mpc/h
@@ -83,6 +81,9 @@ class NFW:
         if(m200c is None):
             self.m200c = self.profile.halo_radius_to_halo_mass(self.r200c) # M_sun/h
             self.m200c = self.m200c / cosmo.h # M_sun
+        
+        # HaloTools and Colossus expect masses in Mpc/h, so scale accordingly on input and output
+        self.m200ch = self.m200c * cosmo.h
             
         # these to be filled by populate_halo()
         self.r = None
@@ -105,9 +106,10 @@ class NFW:
             c_u = mass_conc(self.m200ch, '200c', z, model='child18')
             if(cM_err):
                 c_sig = c_u/3
-                self.c = rand.normal(loc=c_u, scale=c_sig)
+                self.c = rand.normal(loc=c_u, scale=c_sig) 
             else:
                 self.c = c_u
+            self.c_err = 0
      
     
     # -----------------------------------------------------------------------------------------------
@@ -278,9 +280,9 @@ class NFW:
         trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60 * (self.redshift+1)
         boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
 
-        cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, sod_halo_cdelta,'\
+        cols = '#halo_redshift, sod_halo_mass, sod_halo_radius, sod_halo_cdelta, sod_halo_cdelta_error'\
                'halo_lc_x, halo_lc_y, halo_lc_z, boxRadius_Mpc, boxRadius_arcsec, mpp'
-        props = np.array([self.redshift, self.m200c, self.r200c, self.c, 
+        props = np.array([self.redshift, self.m200c, self.r200c, self.c, self.c_err, 
                           0, 0, 0, boxRadius_Mpc, boxRadius_arcsec, self.mpp])
        
         np.savetxt('{}/properties.csv'.format(output_dir), [props],
