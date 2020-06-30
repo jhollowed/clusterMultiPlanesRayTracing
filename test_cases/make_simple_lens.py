@@ -24,7 +24,7 @@ import cosmology as cm
 
 
 class NFW:
-    def __init__(self, m200c, z, c=None, cM_err=False, cosmo=cm.OuterRim_params, seed=None):
+    def __init__(self, z, m200c=None, r200c=None, c=None, cM_err=False, cosmo=cm.OuterRim_params, seed=None):
         """
         Class for generating NFW test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a halo mass, redshift, and 
@@ -34,10 +34,14 @@ class NFW:
         
         Parameters
         ----------
-        m200c : float
-            The mass of the halo within a radius containing 200*rho_crit, in M_sun
         z : float 
             The redshift of the halo.
+        m200c : float
+            The mass of the halo within a radius containing 200*rho_crit, in M_sun. If not passed, 
+            then r200c must be supplied
+        r200c : float
+            The radius of the halo enclosing a mean density of 200*rho_crit, in Mpc. If not passed,
+            then m200c must be supplied.
         c : float, optional 
             The concentration of the halo. If not given, samples from a Gaussian 
             with location and scale suggested by the M-c relation of Child+2018
@@ -63,17 +67,23 @@ class NFW:
             for input to the ray tracing modules of this package.
         """
        
-        self.redshift = z
+        assert (m220c is not None or r200c is not None), "Either m200c (in M_sun) or r200c (in Mpc) must be supplied"
         self.m200c = m200c
+        self.r200c = r200c
+        self.redshift = z
         self.cosmo = cosmo
 
         # HaloTools and Colossus expect masses in Mpc/h, so scale accordingly on input and output
         self.m200ch = self.m200c * cosmo.h
 
         self.profile = NFWProfile(cosmology=self.cosmo, redshift=self.redshift, mdef = '200c')
-        self.r200ch = self.profile.halo_mass_to_halo_radius(self.m200ch) #proper Mpc/h
-        self.r200c = self.r200ch / cosmo.h # proper Mpc
-
+        if(r200c is None):
+            self.r200ch = self.profile.halo_mass_to_halo_radius(self.m200ch) #proper Mpc/h
+            self.r200c = self.r200ch / cosmo.h # proper Mpc
+        if(m200c is None):
+            self.m200c = self.profile.halo_radius_to_halo_mass(self.r200c) # M_sun/h
+            self.m200c = self.m200c / cosmo.h # M_sun
+            
         # these to be filled by populate_halo()
         self.r = None
         self.theta = None

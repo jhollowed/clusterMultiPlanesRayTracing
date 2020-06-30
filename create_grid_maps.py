@@ -490,6 +490,5 @@ class grid_map_generator():
         shear1 = 0.5*(al11 - al22)
         shear2 = 0.5*(al12 + al21)
 
-        pdb.set_trace()
         return shear1, shear2
         
