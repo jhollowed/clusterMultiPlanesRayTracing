@@ -286,7 +286,7 @@ class NFW:
 
 
 class PointMass:
-    def __init__(self, M, z, cosmo=cm.OuterRim_params, n = 10000, particle_rho = 64):
+    def __init__(self, M, z, cosmo=cm.OuterRim_params, n = 10000, particle_rho = 1000):
         """
         Class for generating point-mass test-case input files for the ray tracing modules supplied in
         the directory above. This class is constructed with a mass, redshift, and cosmological model. It
@@ -308,7 +308,7 @@ class PointMass:
             Number of particles to compose the point mass. Also the value used to set mass of light "field" 
             particles, each which will have a mass of mpp = M/n. Defautls to 10000.
         particle_rho : float
-            background "light" particle number density per square proper Mpc. Defaults to 64.
+            background "light" particle number density per cubic proper Mpc. Defaults to 1000.
         
         Methods
         -------
@@ -327,7 +327,7 @@ class PointMass:
     # -----------------------------------------------------------------------------------------------
          
         
-    def output_particles(self, fov_size, output_dir='./pointmass_particle_realization', vis_debug=True):
+    def output_particles(self, fov_size, plane_depth, output_dir='./pointmass_particle_realization', vis_debug=True):
         """
         Outputs the particle information, as well as a property file for fov dimensions. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -342,6 +342,8 @@ class PointMass:
             radius of largest circle fitting inside the square fov, in comoving Mpc at the lens 
             plane (e.g. if fov_size=3, then the side-length of the fov will be 6Mpc at the redshift
             of the point mass lens)
+        plane_depth : depth of lens plane in Mpc; with all particles on a 2d plane, the DTFE will
+            find a vanishing density, so a depth is required. Defaults to 0.05.
         output_dir : string
             The desired output location for the binary files
         vis_debug : bool
@@ -356,17 +358,27 @@ class PointMass:
         # write property file
         self._write_prop_file(fov_size, output_dir)
         
-        # first place point mass consituent particles
-        x_pm, y_pm, z_pm = np.zeros(self.n), np.zeros(self.n), np.zeros(self.n)
-        
+        # first place point mass consituent particles; apply kpc-scale spherical jitter
+        r = (np.random.rand(self.n) ** (1/3))# * 0.001
+        v = np.random.uniform(low=0, high=1, size = len(r))
+        ang1 = np.random.uniform(low=0, high=2*np.pi, size = len(r))
+        ang2 = np.arccos(2*v-1)
+        x_pm = r*np.sin(ang2)*np.cos(ang1)
+        y_pm = r*np.sin(ang2)*np.sin(ang1)
+        z_pm = r*np.cos(ang2)
+ 
         # and the light backgroud
-        total_particles = int((fov_size*2)**2 * self.particle_rho)
+        plane_vol = fov_size**2 * plane_depth
+        total_particles = int(plane_vol * self.particle_rho)
         N = int(np.sqrt(total_particles))
-        x_field = np.zeros(total_particles)
-        y_field, z_field = np.meshgrid(np.linspace(-fov_size, fov_size, N),
-                                       np.linspace(-fov_size, fov_size, N))
+        x_field, y_field, z_field = np.meshgrid(np.linspace(-plane_depth, plane_depth, N), 
+                                                np.linspace(-fov_size, fov_size, N),
+                                                np.linspace(-fov_size, fov_size, N))
+        x_field = np.ravel(x_field)
         y_field = np.ravel(y_field)
         z_field = np.ravel(z_field)
+        
+        x_field, y_field, z_field = [0], [0], [0]
 
         # combine populations
         x = np.hstack([x_pm, x_field])
@@ -402,6 +414,7 @@ class PointMass:
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
             ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
             ax2.set_ylabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
+            plt.show()
             plt.savefig('{}/pointmass_particles.png'.format(output_dir), dpi=300)
   
     
