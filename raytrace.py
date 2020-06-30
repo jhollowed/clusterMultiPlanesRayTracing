@@ -145,7 +145,8 @@ class ray_tracer():
             shear2_array = np.zeros((nzlp,ncc,ncc))
 
             for j in range(nzlp):
-                rescale = cm.Da(ZS0)/cm.Da2(zl_array[j],ZS0)*cm.Da2(zl_array[j],zs)/cm.Da(zs) # --> check
+                # rescale = conversion from reduced deflection at zs0 and zs
+                rescale = cm.Da(ZS0)/cm.Da2(zl_array[j],ZS0) * cm.Da2(zl_array[j],zs)/cm.Da(zs) # --> check
                 kappa0_array[j] = self.kappa_zs0[j]*rescale
                 alpha1_array[j] = self.alpha1_zs0[j]*rescale
                 alpha2_array[j] = self.alpha2_zs0[j]*rescale
@@ -156,7 +157,7 @@ class ray_tracer():
 
             self.print('-------- ray tracing at source plane {:.3f} --------'.format(zs))
             af1, af2, kf0, sf1, sf2 = self._ray_tracing_all(alpha1_array, alpha2_array, kappa0_array,
-                                                            shear1_array, shear2_array, zl_array,zs)
+                                                            shear1_array, shear2_array, zl_array, zs)
             self.print('max values:')
             self.print("kf0 = {}".format(np.max(kf0)))
             self.print("af1 = {}".format(np.max(af1)))

@@ -121,7 +121,7 @@ class grid_map_generator():
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
 
         if(inv_h == True):
-            self.zp_los = self.zp_los / self.inp.cosmo.h
+            #self.zp_los = self.zp_los / self.inp.cosmo.h
             self.xxp_los = self.xxp_los / self.inp.cosmo.h
             self.yyp_los = self.yyp_los / self.inp.cosmo.h
             self.zzp_los = self.zzp_los / self.inp.cosmo.h
@@ -310,13 +310,15 @@ class grid_map_generator():
             plane_mask = np.logical_and(self.zp_los > lens_plane_bounds[0], self.zp_los <= lens_plane_bounds[1])
         else:
             plane_mask = np.ones(len(self.zp_los), dtype=bool)
+        
         zp = self.zp_los[plane_mask]
-        mpin = np.ones(len(zp))*self.inp.mpp
+        zl_median = np.median(zp)
         zs = self.inp.zs0
+        mpin = np.ones(len(zp)) * self.inp.mpp
         ncc = self.inp.nnn
         bsz_mpc = self.inp.bsz_mpc
         bsz_arc = self.inp.bsz_arc
-        zl_median = np.median(zp)
+        
         # manually toggle the noskip boolean to force density calculation and ignore skip_sdens
         noskip = False
  
@@ -352,19 +354,19 @@ class grid_map_generator():
         if(skip_sdens == False or noskip == True):
 
             self.print('extrcting lens plane from LOS')
-            xp = self.xxp_los[plane_mask]
-            yp = self.yyp_los[plane_mask]
-            zp = self.zzp_los[plane_mask]
+            xxp = self.xxp_los[plane_mask]
+            yyp = self.yyp_los[plane_mask]
+            zzp = self.zzp_los[plane_mask]
             tp = self.tp_los[plane_mask]
             pp = self.pp_los[plane_mask]
-            self.print('{} particles'.format(len(xp)))
+            self.print('{} particles'.format(len(xxp)))
    
             # compute fov-centric coordinates:
-            # x3 in comoving Mpc along the LOS
             # x1 azimuthal projected distance in comoving Mpc
             # x2 coaltitude projected distance in comoving Mpc
+            # x3 in comoving Mpc along the LOS
 
-            rp = np.linalg.norm(np.vstack([xp, yp, zp]), axis=0)
+            rp = np.linalg.norm(np.vstack([xxp, yyp, zzp]), axis=0)
             rp_center = (np.max(rp)+np.min(rp))*0.5
             plane_width = 0.95 * (np.tan(bsz_arc/cm.apr/2) * rp_center * 2)
             x3in = rp - rp_center
@@ -378,7 +380,7 @@ class grid_map_generator():
             # ------ do density estiamtion via SPH cfunc ------
             if(self.density_estimator == 'sph'):
                 self.print('doing SPH density estimation')
-                sdens_comoving = cf.call_sph_sdens_weight_omp(x1in,x2in,x3in,mpin,bsz_mpc,ncc)
+                sdens_comoving = cf.call_sph_sdens_weight_omp(x1in, x2in, x3in, mpin, bsz_mpc, ncc)
             
             # ------ do density estiamtion via system call to SDTFE exe ------
             elif(self.density_estimator == 'dtfe'):
@@ -435,7 +437,7 @@ class grid_map_generator():
         # convergence dimensionless 
         self.print('computing convergence')
         sigma_proper = sdens_comoving * (1+zl_median)**2
-        kappa = sigma_proper / cm.sigma_crit(zl_median,zs)
+        kappa = sigma_proper / cm.sigma_crit(zl_median, zs)
          
         # ----------------------- defelection maps ------------------------------
 
