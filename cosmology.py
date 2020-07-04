@@ -28,15 +28,21 @@ def update_cosmology(new_cosmo):
     global cosmo
     cosmo = new_cosmo
 
-def calc_mpp(L, cosmo, Np):
+def rho_crit_z0():
+    # critical density in solMass/Mpc^3 at z=0
+    global cosmo
+    return cosmo.critical_density(0).to(u.solMass/u.Mpc**3)
+
+def calc_mpp(L, Np):
     # calc mpp in solMass
-    pc = cosmo.critical_density(0).to(u.solMass/u.Mpc**3)
+    global cosmo
+    pc = rho_crit_z0()
     pm = pc*cosmo.Om0
     V = (L*u.Mpc)**3
     return (pm * V) / Np
 
 # L given in Mpc
-OuterRim_setup = {'z_init':200, 'sim_steps':500, 'L':4225, 'mpp':calc_mpp(4225, cosmo, 10240**3), 'name':'OuterRim'}
+OuterRim_setup = {'z_init':200, 'sim_steps':500, 'L':4225, 'mpp':calc_mpp(4225, 10240**3), 'name':'OuterRim'}
 sim = OuterRim_setup
 def update_sim(new_sim):
     global sim
