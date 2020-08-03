@@ -121,6 +121,7 @@ class grid_map_generator():
         self.zp_los, self.xxp_los, self.yyp_los, self.zzp_los, self.tp_los, self.pp_los = arrs
 
         if(inv_h == True):
+            self.print('inv_h is ON')
             #self.zp_los = self.zp_los / self.inp.cosmo.h
             self.xxp_los = self.xxp_los / self.inp.cosmo.h
             self.yyp_los = self.yyp_los / self.inp.cosmo.h

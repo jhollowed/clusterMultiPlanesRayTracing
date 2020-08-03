@@ -29,24 +29,29 @@ class halo_inputs():
         if(cosmo is not None): 
             cm.update_cosmology(cosmo)
         self.cosmo = cm.cosmo
+        
+        # update cosmological parameters if passed; if mpp is present in the property file, 
+        # automatically overwrite the default value in the global cosmo object
         if(sim is not None):
             cm.update_sim(sim)
+        if('mpp' in self.halo_props.dtype.names):
+            cm.update_sim({'mpp':self.halo_props['mpp']})
         self.sim = cm.sim
         
         #--------------------------------- cutout quantities -----------------------------------
         
         self.halo_redshift = float(self.halo_props['halo_redshift'])
         self.halo_mass = int(self.halo_props['sod_halo_mass']) #solMass
-        self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree
-        self.bsz_mpc = float(self.halo_props['boxRadius_Mpc']*2) # Mpc
+        self.bsz = float(self.halo_props['boxRadius_arcsec']*2)/3600. # degree (from projected comoving)
+        self.bsz_mpc = float(self.halo_props['boxRadius_Mpc']*2) # Mpc Comoving
         self.mpp = self.sim['mpp'] #solMass
         
         #--------------------------------- lensing params -------------------------------------
-
+        
         self.nnn = nnn
-        self.dsx = self.bsz/self.nnn
-        self.bsz_arc = self.bsz*3600.
-        self.dsx_arc = self.dsx*3600.
+        self.dsx = self.bsz / self.nnn
+        self.bsz_arc = self.bsz * 3600.
+        self.dsx_arc = self.dsx * 3600.
         self.zs0 = 10.0
 
         #self.mpp = self.mpp * 100 # uncomment for downsampled inputs

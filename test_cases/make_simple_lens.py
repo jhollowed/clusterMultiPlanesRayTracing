@@ -161,6 +161,7 @@ class NFW:
 
         # radial positions need to be in comoving comoving coordiantes, as the kappa maps in the raytracing
         # modules expect the density estimation to be done on a comoving set of particles
+        
         self.r = self.r * (1+self.redshift)
         
         # now let's add in uniform random positions in the angular coordinates as well
@@ -253,6 +254,7 @@ class NFW:
         # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
         # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). 
         # Replace rfrac*r200c by the radial distance to the furthest particle and trim by 5%, to be safe.
+        # Also note that self.r is a comoving distance, which is correct
         fov_size = 0.95 * (np.max(self.r) / np.sqrt(2))
         self._write_prop_file(fov_size, output_dir)
     
@@ -452,7 +454,7 @@ class PointMass:
             location of this module.
         """
 
-        # find the angular scale corresponding to fov_r200c * r200c in proper Mpc at the redshift of the halo
+        # find the angular scale corresponding to fov_r200c * r200c in comoving Mpc at the redshift of the halo
         boxRadius_Mpc = fov_radius
         trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60 * (self.redshift+1)
         self.boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
