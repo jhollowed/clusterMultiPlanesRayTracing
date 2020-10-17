@@ -160,8 +160,7 @@ class NFW:
         self.mpp = M_enc / N
 
         # radial positions need to be in comoving comoving coordiantes, as the kappa maps in the raytracing
-        # modules expect the density estimation to be done on a comoving set of particles
-        
+        # modules expect the density estimation to be done on a comoving set of particles        
         self.r = self.r * (1+self.redshift)
         
         # now let's add in uniform random positions in the angular coordinates as well
@@ -182,9 +181,66 @@ class NFW:
     
     
     # -----------------------------------------------------------------------------------------------
+    
+
+
+    def populate_halo_fov(self, N=10000, rfrac=1, depth=None):
+        """
+        eventually merge with function above...
+        """
+       
+        self.populated = True
+        
+        # modify requested radius to fill the encapsulating fov volume
+        if(depth < rfrac or depth is None): depth = rfrac
+        radius = max([rfrac, depth])
+        halo_radius = np.sqrt(2) * radius * self.r200ch
+        conc = np.sqrt(2) * radius * self.c
+        
+        # the radial positions in proper Mpc
+        r = self.profile.mc_generate_nfw_radial_positions(num_pts = N, conc = conc, 
+                                                          halo_radius = halo_radius, seed=self.seed+1)
+        self.r = r / self.cosmo.h
+        self.max_rfrac = rfrac
+
+        # compute mass enclosed to find mass per particle
+        # (this is the analytic integration of the NFW profile in terms of m_200c, assuming c=c_200c)
+        rs = self.r200c / self.c
+        rmax = rfrac * self.r200c
+        n = np.log((rs+rmax)/rs) - rmax/(rmax+rs)
+        d = np.log(1+self.c) - self.c/(1+self.c)
+        M_enc = self.m200c * n/d
+        self.mpp = M_enc / N
+
+        # radial positions need to be in comoving comoving coordiantes, as the kappa maps in the raytracing
+        # modules expect the density estimation to be done on a comoving set of particles        
+        self.r = self.r * (1+self.redshift)
+        
+        # now let's add in uniform random positions in the angular coordinates as well
+        # Note that this is not the same as a uniform distribution in theta and phi 
+        # over [0, pi] and [0, 2pi], since the area element on a sphere is a function of 
+        # the coaltitude! See http://mathworld.wolfram.com/SpherePointPicking.html 
+        rand = np.random.RandomState(self.seed) 
+        v = rand.uniform(low=0, high=1, size = len(r))
+        self.phi = rand.uniform(low=0, high=2*np.pi, size = len(r))
+        self.theta = np.arccos(2*v-1)
+        
+        # trim the particle population to the fov
+        # move to polar coordinates, with x the los dimension
+        x = self.r *  np.sin(self.theta) * np.cos(self.phi)
+        y = self.r *  np.sin(self.theta) * np.sin(self.phi)
+        z = self.r *  np.cos(self.theta)
+        fov_mask = np.logical_and.reduce((np.abs(x) <= depth * self.r200c, 
+                                          np.abs(y) <= rmax * self.r200c,
+                                          np.abs(z) <= rmax * self.r200c))
+        self.r, self.theta, self.phi = self.r[fov_mask], self.theta[fov_mask], self.phi[fov_mask] 
+    
+    
+    # -----------------------------------------------------------------------------------------------
          
         
-    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None):
+    def output_particles(self, output_dir='./nfw_particle_realization', vis_debug=False, vis_output_dir=None, 
+                         fov_multiplier = None):
         """
         Computes three dimensional quantities for particles sampled along radial dimension. Each 
         quantity is output as little-endian binary files (expected input for ray-tracing modules
@@ -200,6 +256,11 @@ class NFW:
             If True, display a 3d plot of the particles to be output for visual inspection
         vis_output_dir : string
             The desired output location for matplotlib figures images, if vis_debug is True
+        fov_multiplier : float, optional
+            The size of the field of view, which sets the scale of the eventual density 
+            estimation, in projected comving Mpc, as a fraction of the largest radial particle 
+            dispalcement. Defaults to None, in which case the field of view is set to be the 
+            largest square that can fit entirely inside the projected halo.
         """
         
         if(self.populated == False):
@@ -213,6 +274,7 @@ class NFW:
         x = self.r *  np.sin(self.theta) * np.cos(self.phi) + self.halo_r
         y = self.r *  np.sin(self.theta) * np.sin(self.phi)
         z = self.r *  np.cos(self.theta)
+        r_fov = np.linalg.norm([y, z], axis=0)
         r_sky = np.linalg.norm([x,y,z], axis=0)
         theta_sky = np.arccos(z/r_sky) * 180/np.pi * 3600
         phi_sky = np.arctan(y/x) * 180/np.pi * 3600
@@ -226,18 +288,27 @@ class NFW:
         redshift = invfunc(r_sky)
 
         if(vis_debug):
+            print(vis_output_dir)
             f = plt.figure(figsize=(12,6))
             ax = f.add_subplot(121, projection='3d')
             ax2 = f.add_subplot(122)
 
             ax.scatter(x, y, z, c='k', alpha=0.25)
+            max_range = np.array([x.max()-x.min(), y.max()-y.min(), z.max()-z.min()]).max() / 2.0
+            mid_x = (x.max()+x.min()) * 0.5
+            mid_y = (y.max()+y.min()) * 0.5
+            mid_z = (z.max()+z.min()) * 0.5
+            ax.set_xlim(mid_x - max_range, mid_x + max_range)
+            ax.set_ylim(mid_y - max_range, mid_y + max_range)
+            ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
             ax.set_xlabel(r'$x\>[Mpc/h]$', fontsize=16)
             ax.set_ylabel(r'$y\>[Mpc/h]$', fontsize=16)
             ax.set_zlabel(r'$z\>[Mpc/h]$', fontsize=16)
 
             ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
             ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
-            ax2.set_yl:wqaabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
+            ax2.set_ylabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
             plt.savefig('{}/nfw_particles.png'.format(vis_output_dir), dpi=300)
 
         # write out all to binary
@@ -247,15 +318,18 @@ class NFW:
         theta_sky.astype('f').tofile('{}/theta.bin'.format(output_dir))
         phi_sky.astype('f').tofile('{}/phi.bin'.format(output_dir))
         redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
-
-        # the halo prop file records half the radius of the square FOV, which sets the scale for the density
-        # estimation... we don't want the FOV to include any space outside of the region we have populated with
-        # halos, else the density estiamtion will plummet at the boundary. Above, we populated the halo with
-        # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
-        # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). 
-        # Replace rfrac*r200c by the radial distance to the furthest particle and trim by 5%, to be safe.
-        # Also note that self.r is a comoving distance, which is correct
-        fov_size = 0.95 * (np.max(self.r) / np.sqrt(2))
+    
+        if(fov_multiplier is not None):
+            fov_size = fov_multiplier * np.max(self.r)
+        else:
+            # the halo prop file records half the radius of the square FOV, which sets the scale for the density
+            # estimation... we don't want the FOV to include any space outside of the region we have populated with
+            # halos, else the density estiamtion will plummet at the boundary. Above, we populated the halo with
+            # particles out to rfrac * r200c. The largest square that can fit inside the projection of this NFW sphere
+            # then has a side length of 2*(rfrac*r200c)/sqrt(2) --> radius = (rfrac*r200c)/sqrt(2). 
+            # Replace rfrac*r200c by the radial distance to the furthest particle and trim by 5%, to be safe.
+            # Also note that self.r is a comoving distance, which is correct
+            fov_size = 0.95 * (np.max(r_fov) / np.sqrt(2))
         self._write_prop_file(fov_size, output_dir)
     
     
@@ -298,173 +372,6 @@ class NFW:
 
 # ======================================================================================================
 
-
-
-
-class PointMass:
-    def __init__(self, M, z, cosmo=cm.OuterRim_params, n = 10000, particle_rho = 1000):
-        """
-        Class for generating point-mass test-case input files for the ray tracing modules supplied in
-        the directory above. This class is constructed with a mass, redshift, and cosmological model. It
-        deposits a uniform distribution of very light particles on the lens plane, and making a stack of
-        many such light particles at the center of the fov, effectively constituting a single massive 
-        particle at the center of the field of view, while remaining friendly to general density estimation 
-        methods. The methods provided here can then populate the profile with a particle distribution realization 
-        in 3 dimensions, and output the result in the form expected by the raytracing modules.
-        
-        Parameters
-        ----------
-        M : float
-            The mass of the particle in M_sun
-        z : float 
-            The redshift of the halo.
-        cosmo : object, optional
-            An AstroPy cosmology object. Defaults to OuterRim parameters.
-        n : int, optional
-            Number of particles to compose the point mass. Also the value used to set mass of light "field" 
-            particles, each which will have a mass of mpp = M/n. Defautls to 10000.
-        particle_rho : float
-            background "light" particle number density per cubic proper Mpc. Defaults to 1000.
-        
-        Methods
-        -------
-        output_particle(r)
-            Deposits the input mass on a single particle, and writes out a property file containing
-            dimensions of the field of view and redshfit information.
-        """
-       
-        self.redshift = z
-        self.mpp = M/n
-        self.n = n
-        self.particle_rho = particle_rho
-        self.cosmo = cosmo
- 
-    
-    # -----------------------------------------------------------------------------------------------
-         
-        
-    def output_particles(self, fov_size, plane_depth, output_dir='./pointmass_particle_realization', vis_debug=True):
-        """
-        Outputs the particle information, as well as a property file for fov dimensions. Each 
-        quantity is output as little-endian binary files (expected input for ray-tracing modules
-        in this package). The output quantities are x, y, z, theta, phi, redshift. In 
-        cartesian space, the distribution is placed at a distance along the x-axis computed as 
-        the comoving distance to the halo redshift by the input cosmology. Also writes out a 
-        property file which stores fov dimensions, lens redshift, etc.
-
-        Parameters
-        ----------
-        fov_size : float
-            radius of largest circle fitting inside the square fov, in comoving Mpc at the lens 
-            plane (e.g. if fov_size=3, then the side-length of the fov will be 6Mpc at the redshift
-            of the point mass lens)
-        plane_depth : depth of lens plane in Mpc; with all particles on a 2d plane, the DTFE will
-            find a vanishing density, so a depth is required. Defaults to 0.05.
-        output_dir : string
-            The desired output location for the binary files
-        vis_debug : bool
-            If True, display a 3d plot of the particles to be output for visual inspection
-        vis_output_dir : string
-            The desired output location for matplotlib figures images, if vis_debug is True
-        """
-        
-        if not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
-        
-        # write property file
-        self._write_prop_file(fov_size, output_dir)
-        
-        # first place point mass consituent particles; apply kpc-scale spherical jitter
-        r = (np.random.rand(self.n) ** (1/3))# * 0.001
-        v = np.random.uniform(low=0, high=1, size = len(r))
-        ang1 = np.random.uniform(low=0, high=2*np.pi, size = len(r))
-        ang2 = np.arccos(2*v-1)
-        x_pm = r*np.sin(ang2)*np.cos(ang1)
-        y_pm = r*np.sin(ang2)*np.sin(ang1)
-        z_pm = r*np.cos(ang2)
- 
-        # and the light backgroud
-        plane_vol = fov_size**2 * plane_depth
-        total_particles = int(plane_vol * self.particle_rho)
-        N = int(np.sqrt(total_particles))
-        x_field, y_field, z_field = np.meshgrid(np.linspace(-plane_depth, plane_depth, N), 
-                                                np.linspace(-fov_size, fov_size, N),
-                                                np.linspace(-fov_size, fov_size, N))
-        x_field = np.ravel(x_field)
-        y_field = np.ravel(y_field)
-        z_field = np.ravel(z_field)
-        
-        x_field, y_field, z_field = [0], [0], [0]
-
-        # combine populations
-        x = np.hstack([x_pm, x_field])
-        y = np.hstack([y_pm, y_field])
-        z = np.hstack([z_pm, z_field])
-
-        # now find projected position wrt origin after pushing point mass down x-axis (Mpc and arcsec)
-        self.halo_r = self.cosmo.comoving_distance(self.redshift).value
-        x += self.halo_r
-        r_sky = np.linalg.norm([x,y,z], axis=0)
-        theta_sky = np.arccos(z/r_sky) * 180/np.pi * 3600
-        phi_sky = np.arctan(y/x) * 180/np.pi * 3600
-        redshift = np.ones(len(x)) * self.redshift
-
-        # write out all to binary
-        x.astype('f').tofile('{}/x.bin'.format(output_dir))
-        y.astype('f').tofile('{}/y.bin'.format(output_dir))
-        z.astype('f').tofile('{}/z.bin'.format(output_dir))
-        theta_sky.astype('f').tofile('{}/theta.bin'.format(output_dir))
-        phi_sky.astype('f').tofile('{}/phi.bin'.format(output_dir))
-        redshift.astype('f').tofile('{}/redshift.bin'.format(output_dir))
-        
-        if(vis_debug):
-            f = plt.figure(figsize=(12,6))
-            ax = f.add_subplot(121, projection='3d')
-            ax2 = f.add_subplot(122)
-
-            ax.scatter(x, y, z, c='k', alpha=0.25)
-            ax.set_xlabel(r'$x\>[Mpc/h]$', fontsize=16)
-            ax.set_ylabel(r'$y\>[Mpc/h]$', fontsize=16)
-            ax.set_zlabel(r'$z\>[Mpc/h]$', fontsize=16)
-
-            ax2.scatter(theta_sky, phi_sky, c='k', alpha=0.2)
-            ax2.set_xlabel(r'$\theta\>[\mathrm{arsec}]$', fontsize=16)
-            ax2.set_ylabel(r'$\phi\>[\mathrm{arcsec}]$', fontsize=16)
-            plt.show()
-            plt.savefig('{}/pointmass_particles.png'.format(output_dir), dpi=300)
-  
-    
-    # -----------------------------------------------------------------------------------------------
-
-
-    def _write_prop_file(self, fov_radius, output_dir):
-        """
-        Writes a csv file contining the halo properties needed by this package's ray tracing modules
-        The boxRadius can really be anything, since the space around the NFW ball is empty-- here, we
-        set it to correspond to a transverse comoving distance equal to R*r200 at the redshift of the
-        halo.
-
-        Parameters
-        ----------
-        fov_radius : float
-            Half of the square FOV side length (this scale will be used in later calls to the desnity estaimtor)
-
-        output_dir : string, optional
-            The desired output location for the property file. Defaults to a subdir created at the 
-            location of this module.
-        """
-
-        # find the angular scale corresponding to fov_r200c * r200c in comoving Mpc at the redshift of the halo
-        boxRadius_Mpc = fov_radius
-        trans_Mpc_per_arcsec = (self.cosmo.kpc_proper_per_arcmin(self.redshift).value/1e3)/60 * (self.redshift+1)
-        self.boxRadius_arcsec = boxRadius_Mpc / trans_Mpc_per_arcsec
-
-        cols = '#halo_redshift, sod_halo_mass, halo_lc_x, halo_lc_y, halo_lc_z, '\
-               'boxRadius_Mpc, boxRadius_arcsec, mpp'
-        props = np.array([self.redshift, self.mpp, 0, 0, 0, boxRadius_Mpc, self.boxRadius_arcsec, self.mpp])
-       
-        np.savetxt('{}/properties.csv'.format(output_dir), [props],
-                   fmt='%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f', delimiter=',',header=cols)
 
 # example usage
 #hh = simple_halo(m200c = 1e14, z = 0.3)
